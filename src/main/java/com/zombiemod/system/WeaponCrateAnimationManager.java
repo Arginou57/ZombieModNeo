@@ -1,7 +1,8 @@
 package com.zombiemod.system;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -10,6 +11,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
+import java.lang.reflect.Field;
 import java.util.*;
 
 /**
@@ -18,6 +20,50 @@ import java.util.*;
  * - Animation de roulette pour plusieurs items
  */
 public class WeaponCrateAnimationManager {
+
+    // Cache pour les EntityDataAccessor obtenus par reflection
+    private static EntityDataAccessor<ItemStack> DATA_ITEM_STACK_ID = null;
+    private static EntityDataAccessor<Byte> DATA_ITEM_TRANSFORM_ID = null;
+
+    /**
+     * Obtient l'EntityDataAccessor pour l'ItemStack via reflection
+     */
+    @SuppressWarnings("unchecked")
+    private static EntityDataAccessor<ItemStack> getItemStackAccessor() {
+        if (DATA_ITEM_STACK_ID != null) return DATA_ITEM_STACK_ID;
+
+        try {
+            Field field = Display.ItemDisplay.class.getDeclaredField("DATA_ITEM_STACK_ID");
+            field.setAccessible(true);
+            DATA_ITEM_STACK_ID = (EntityDataAccessor<ItemStack>) field.get(null);
+            System.out.println("[WeaponCrateAnimation] EntityDataAccessor pour ItemStack obtenu via reflection");
+            return DATA_ITEM_STACK_ID;
+        } catch (Exception e) {
+            System.err.println("[WeaponCrateAnimation] Impossible d'accéder à DATA_ITEM_STACK_ID: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Obtient l'EntityDataAccessor pour le transform mode via reflection
+     */
+    @SuppressWarnings("unchecked")
+    private static EntityDataAccessor<Byte> getTransformAccessor() {
+        if (DATA_ITEM_TRANSFORM_ID != null) return DATA_ITEM_TRANSFORM_ID;
+
+        try {
+            Field field = Display.ItemDisplay.class.getDeclaredField("DATA_ITEM_TRANSFORM_ID");
+            field.setAccessible(true);
+            DATA_ITEM_TRANSFORM_ID = (EntityDataAccessor<Byte>) field.get(null);
+            System.out.println("[WeaponCrateAnimation] EntityDataAccessor pour Transform obtenu via reflection");
+            return DATA_ITEM_TRANSFORM_ID;
+        } catch (Exception e) {
+            System.err.println("[WeaponCrateAnimation] Impossible d'accéder à DATA_ITEM_TRANSFORM_ID: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
 
     private static class CrateAnimation {
         BlockPos pos;
@@ -108,47 +154,34 @@ public class WeaponCrateAnimationManager {
         );
         display.setPos(pos);
 
-        // Créer le NBT complet AVANT d'ajouter au monde
-        CompoundTag nbt = new CompoundTag();
-
-        // Sauvegarder les données de base
-        display.saveWithoutId(nbt);
-
-        // Ajouter l'item dans le NBT
-        CompoundTag itemTag = new CompoundTag();
-        item.save(level.registryAccess(), itemTag);
-        nbt.put("item", itemTag);
-
-        // Transformation : mode FIXED (valeur 8)
-        // Les clés correctes pour Display entities en 1.21.1
-        nbt.putByte("item_display", (byte) 8);
-
-        // Billboard : fixe (pas de rotation vers la caméra)
-        nbt.putString("billboard", "fixed");
-
-        // Brightness (optionnel, pour être sûr que c'est visible)
-        CompoundTag brightness = new CompoundTag();
-        brightness.putInt("sky", 15);
-        brightness.putInt("block", 15);
-        nbt.put("brightness", brightness);
-
-        // Charger toutes les données NBT
-        display.load(nbt);
-
-        // IMPORTANT: Ajouter au monde APRÈS avoir chargé le NBT
+        // Ajouter l'entité au monde d'abord
         if (!level.addFreshEntity(display)) {
             System.err.println("[WeaponCrateAnimation] Impossible de créer la display entity");
             return null;
         }
 
-        // Forcer la synchronisation immédiate avec les clients
-        // Envoyer explicitement les données de l'entité à tous les joueurs
-        level.getChunkSource().broadcastAndSend(display, new net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket(
-            display.getId(),
-            display.getEntityData().getNonDefaultValues()
-        ));
+        // Obtenir les EntityDataAccessor via reflection
+        EntityDataAccessor<ItemStack> itemAccessor = getItemStackAccessor();
+        EntityDataAccessor<Byte> transformAccessor = getTransformAccessor();
 
-        System.out.println("[WeaponCrateAnimation] Display entity créée et synchronisée: " + display.getId() + " pour item " + item.getDisplayName().getString());
+        if (itemAccessor == null || transformAccessor == null) {
+            System.err.println("[WeaponCrateAnimation] Impossible d'obtenir les EntityDataAccessor");
+            display.discard();
+            return null;
+        }
+
+        // Définir l'item via EntityData (maintenant que l'entité est dans le monde)
+        SynchedEntityData entityData = display.getEntityData();
+        entityData.set(itemAccessor, item);
+
+        // Transformation : mode FIXED (valeur 8)
+        // 0 = NONE, 1 = THIRD_PERSON_LEFT_HAND, 2 = THIRD_PERSON_RIGHT_HAND,
+        // 3 = FIRST_PERSON_LEFT_HAND, 4 = FIRST_PERSON_RIGHT_HAND, 5 = HEAD, 6 = GUI, 7 = GROUND, 8 = FIXED
+        entityData.set(transformAccessor, (byte) 8);
+
+        System.out.println("[WeaponCrateAnimation] Display entity créée: " + display.getId()
+            + " pour item " + item.getDisplayName().getString()
+            + " à " + cratePos);
 
         return display;
     }
@@ -242,23 +275,14 @@ public class WeaponCrateAnimationManager {
      * Met à jour l'item affiché par une Display entity
      */
     private static void updateDisplayItem(Display.ItemDisplay display, ItemStack item, ServerLevel level) {
-        CompoundTag nbt = new CompoundTag();
-        display.saveWithoutId(nbt);
+        EntityDataAccessor<ItemStack> itemAccessor = getItemStackAccessor();
+        if (itemAccessor == null) {
+            System.err.println("[WeaponCrateAnimation] Impossible de mettre à jour l'item: accessor non disponible");
+            return;
+        }
 
-        // Mettre à jour l'item dans le NBT
-        CompoundTag itemTag = new CompoundTag();
-        item.save(level.registryAccess(), itemTag);
-        nbt.put("item", itemTag);
-
-        // Recharger le NBT
-        display.load(nbt);
-
-        // Forcer la synchronisation en supprimant et réajoutant l'entité au tracker
-        // Cela force le serveur à renvoyer les données aux clients
-        level.getChunkSource().broadcastAndSend(display, new net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket(
-            display.getId(),
-            display.getEntityData().getNonDefaultValues()
-        ));
+        // Mettre à jour l'item via EntityData
+        display.getEntityData().set(itemAccessor, item);
     }
 
     /**
