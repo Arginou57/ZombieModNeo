@@ -109,31 +109,35 @@ public class WeaponCrateAnimationManager {
         );
         display.setPos(pos);
 
-        // Créer le NBT comme dans /summon minecraft:item_display ~ ~ ~ {item:{id:"iron_sword"},item_display:"fixed"}
-        CompoundTag nbt = new CompoundTag();
-
-        // Structure de l'item (utilise save() pour obtenir la structure complète)
-        CompoundTag itemTag = new CompoundTag();
-        item.save(level.registryAccess(), itemTag);
-        nbt.put("item", itemTag);
-
-        // item_display: "fixed" (STRING, pas byte!)
-        // Options possibles: "none", "thirdperson_lefthand", "thirdperson_righthand",
-        // "firstperson_lefthand", "firstperson_righthand", "head", "gui", "ground", "fixed"
-        nbt.putString("item_display", "fixed");
-
-        // Charger le NBT dans l'entité AVANT de l'ajouter au monde
-        display.load(nbt);
-
-        // Ajouter l'entité au monde
+        // Ajouter l'entité au monde AVANT de définir les données
+        // Sinon la synchronisation ne fonctionne pas
         if (!level.addFreshEntity(display)) {
             System.err.println("[WeaponCrateAnimation] Impossible de créer la display entity");
             return null;
         }
 
+        // Créer le NBT comme dans /summon minecraft:item_display ~ ~ ~ {item:{id:"iron_sword"},item_display:"fixed"}
+        CompoundTag nbt = new CompoundTag();
+
+        // Sauvegarder l'état actuel de l'entité
+        display.saveWithoutId(nbt);
+
+        // Ajouter l'item dans le NBT
+        CompoundTag itemTag = new CompoundTag();
+        item.save(level.registryAccess(), itemTag);
+        nbt.put("item", itemTag);
+
+        // item_display: "fixed" (STRING, pas byte!)
+        nbt.putString("item_display", "fixed");
+
+        // Charger le NBT APRÈS ajout au monde en utilisant readAdditionalSaveData
+        // C'est la méthode que Minecraft utilise pour charger les données d'entités
+        display.readAdditionalSaveData(nbt);
+
         System.out.println("[WeaponCrateAnimation] Display entity créée: " + display.getId()
             + " pour item " + item.getDisplayName().getString()
-            + " à " + cratePos);
+            + " à " + cratePos
+            + " NBT: " + nbt.toString());
 
         return display;
     }
@@ -227,9 +231,9 @@ public class WeaponCrateAnimationManager {
      * Met à jour l'item affiché par une Display entity
      */
     private static void updateDisplayItem(Display.ItemDisplay display, ItemStack item, ServerLevel level) {
-        // Sauvegarder l'entité en NBT
+        // Sauvegarder l'état actuel
         CompoundTag nbt = new CompoundTag();
-        display.saveWithoutId(nbt);
+        display.addAdditionalSaveData(nbt);
 
         // Mettre à jour l'item dans le NBT
         CompoundTag itemTag = new CompoundTag();
@@ -239,8 +243,8 @@ public class WeaponCrateAnimationManager {
         // Garder item_display en "fixed"
         nbt.putString("item_display", "fixed");
 
-        // Recharger le NBT
-        display.load(nbt);
+        // Recharger avec readAdditionalSaveData (déclenche sync auto)
+        display.readAdditionalSaveData(nbt);
     }
 
     /**
