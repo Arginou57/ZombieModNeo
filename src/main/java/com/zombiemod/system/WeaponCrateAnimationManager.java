@@ -108,10 +108,10 @@ public class WeaponCrateAnimationManager {
         );
         display.setPos(pos);
 
-        // Définir l'item à afficher via NBT
+        // Créer le NBT complet AVANT d'ajouter au monde
         CompoundTag nbt = new CompoundTag();
 
-        // Sauvegarder les données actuelles de l'entité
+        // Sauvegarder les données de base
         display.saveWithoutId(nbt);
 
         // Ajouter l'item dans le NBT
@@ -120,18 +120,35 @@ public class WeaponCrateAnimationManager {
         nbt.put("item", itemTag);
 
         // Transformation : mode FIXED (valeur 8)
-        // 0 = NONE, 1 = THIRD_PERSON_LEFT_HAND, 2 = THIRD_PERSON_RIGHT_HAND,
-        // 3 = FIRST_PERSON_LEFT_HAND, 4 = FIRST_PERSON_RIGHT_HAND, 5 = HEAD, 6 = GUI, 7 = GROUND, 8 = FIXED
+        // Les clés correctes pour Display entities en 1.21.1
         nbt.putByte("item_display", (byte) 8);
 
-        // Charger le NBT dans l'entité
+        // Billboard : fixe (pas de rotation vers la caméra)
+        nbt.putString("billboard", "fixed");
+
+        // Brightness (optionnel, pour être sûr que c'est visible)
+        CompoundTag brightness = new CompoundTag();
+        brightness.putInt("sky", 15);
+        brightness.putInt("block", 15);
+        nbt.put("brightness", brightness);
+
+        // Charger toutes les données NBT
         display.load(nbt);
 
-        // Ajouter au monde
+        // IMPORTANT: Ajouter au monde APRÈS avoir chargé le NBT
         if (!level.addFreshEntity(display)) {
             System.err.println("[WeaponCrateAnimation] Impossible de créer la display entity");
             return null;
         }
+
+        // Forcer la synchronisation immédiate avec les clients
+        // Envoyer explicitement les données de l'entité à tous les joueurs
+        level.getChunkSource().broadcastAndSend(display, new net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket(
+            display.getId(),
+            display.getEntityData().getNonDefaultValues()
+        ));
+
+        System.out.println("[WeaponCrateAnimation] Display entity créée et synchronisée: " + display.getId() + " pour item " + item.getDisplayName().getString());
 
         return display;
     }
@@ -235,6 +252,13 @@ public class WeaponCrateAnimationManager {
 
         // Recharger le NBT
         display.load(nbt);
+
+        // Forcer la synchronisation en supprimant et réajoutant l'entité au tracker
+        // Cela force le serveur à renvoyer les données aux clients
+        level.getChunkSource().broadcastAndSend(display, new net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket(
+            display.getId(),
+            display.getEntityData().getNonDefaultValues()
+        ));
     }
 
     /**
