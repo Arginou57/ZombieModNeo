@@ -22,10 +22,24 @@ public class ServerWeaponCrateTracker {
         syncToAllPlayers();
     }
 
+    /**
+     * Ajoute une weapon crate SANS synchroniser (pour scan initial)
+     */
+    public static void addWeaponCrateNoSync(BlockPos pos, int cost) {
+        weaponCrates.put(pos, cost);
+    }
+
     public static void removeWeaponCrate(BlockPos pos) {
         weaponCrates.remove(pos);
         System.out.println("[ServerWeaponCrateTracker] Caisse supprimée: " + pos);
         syncToAllPlayers();
+    }
+
+    /**
+     * Supprime une weapon crate SANS synchroniser
+     */
+    public static void removeWeaponCrateNoSync(BlockPos pos) {
+        weaponCrates.remove(pos);
     }
 
     public static void clear() {
