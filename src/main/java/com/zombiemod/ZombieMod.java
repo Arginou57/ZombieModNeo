@@ -34,6 +34,7 @@ public class ZombieMod {
         NeoForge.EVENT_BUS.register(ChestInteractionHandler.class);
         NeoForge.EVENT_BUS.register(PlayerDeathHandler.class);
         NeoForge.EVENT_BUS.register(ZombieDropHandler.class);
+        NeoForge.EVENT_BUS.register(PlayerConnectionHandler.class);
 
         // Register network packets
         modEventBus.addListener(this::onRegisterPackets);

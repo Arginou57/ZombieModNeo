@@ -102,6 +102,11 @@ public class WeaponCrateManager {
             data.putInt("Cost", cost);
             data.put("Weapons", new ListTag());
             chest.setChanged();
+
+            // Synchroniser avec les clients
+            if (!level.isClientSide()) {
+                ServerWeaponCrateTracker.addWeaponCrate(pos, cost);
+            }
         }
     }
 

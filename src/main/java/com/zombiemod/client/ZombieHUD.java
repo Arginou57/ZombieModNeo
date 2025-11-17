@@ -3,7 +3,6 @@ package com.zombiemod.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.zombiemod.manager.GameManager;
 import com.zombiemod.network.packet.GameSyncPacket;
-import com.zombiemod.system.WeaponCrateManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -172,13 +171,13 @@ public class ZombieHUD {
             return;
         }
 
-        // Vérifier si c'est une weapon crate
-        if (!WeaponCrateManager.isWeaponCrate(player.level(), lookingAt)) {
+        // Vérifier si c'est une weapon crate (utiliser le cache client)
+        if (!ClientWeaponCrateData.isWeaponCrate(lookingAt)) {
             return;
         }
 
-        // Récupérer le coût
-        int cost = WeaponCrateManager.getCost(player.level(), lookingAt);
+        // Récupérer le coût (depuis le cache client)
+        int cost = ClientWeaponCrateData.getCost(lookingAt);
 
         // Position au-dessus de la hotbar (centré)
         int screenWidth = graphics.guiWidth();
