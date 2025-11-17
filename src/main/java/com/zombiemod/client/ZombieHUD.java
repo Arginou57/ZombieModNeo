@@ -41,10 +41,13 @@ public class ZombieHUD {
             String joinText = "§eTapez §6/zombiejoin §epour rejoindre";
             int x2 = (graphics.guiWidth() - font.width(joinText)) / 2;
             graphics.drawString(font, joinText, x2, 70, 0xFFFFFF);
-            return;
         }
 
-        // Si le joueur n'est pas dans la partie, ne rien afficher
+        // IMPORTANT: Afficher l'info des weapon crates AVANT de vérifier si le joueur est dans la partie
+        // (permet aux admins de voir le prix même hors partie)
+        renderWeaponCrateInfo(graphics, font, mc, player);
+
+        // Si le joueur n'est pas dans la partie, ne rien afficher d'autre
         if (!ClientGameData.isLocalPlayerActive() && !ClientGameData.isLocalPlayerWaiting()) {
             return;
         }
@@ -102,11 +105,6 @@ public class ZombieHUD {
                     y += 10;
                 }
             }
-        }
-
-        // Afficher le prix de la caisse si le joueur la regarde (seulement si actif)
-        if (ClientGameData.isLocalPlayerActive()) {
-            renderWeaponCrateInfo(graphics, font, mc, player);
         }
     }
 
@@ -171,13 +169,20 @@ public class ZombieHUD {
             return;
         }
 
+        // DEBUG: Log quand on regarde un coffre
+        System.out.println("[ZombieHUD] Regardant coffre à: " + lookingAt);
+
         // Vérifier si c'est une weapon crate (utiliser le cache client)
-        if (!ClientWeaponCrateData.isWeaponCrate(lookingAt)) {
+        boolean isWeaponCrate = ClientWeaponCrateData.isWeaponCrate(lookingAt);
+        System.out.println("[ZombieHUD] isWeaponCrate: " + isWeaponCrate);
+
+        if (!isWeaponCrate) {
             return;
         }
 
         // Récupérer le coût (depuis le cache client)
         int cost = ClientWeaponCrateData.getCost(lookingAt);
+        System.out.println("[ZombieHUD] Coût: " + cost);
 
         // Position au-dessus de la hotbar (centré)
         int screenWidth = graphics.guiWidth();

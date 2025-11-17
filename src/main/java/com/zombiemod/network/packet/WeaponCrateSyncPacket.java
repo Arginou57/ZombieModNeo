@@ -33,6 +33,7 @@ public record WeaponCrateSyncPacket(Map<BlockPos, Integer> crates) implements Cu
 
     public static void handle(WeaponCrateSyncPacket packet, IPayloadContext context) {
         context.enqueueWork(() -> {
+            System.out.println("[WeaponCrateSyncPacket] Packet reçu côté client avec " + packet.crates().size() + " caisses");
             // Mettre à jour le cache client
             ClientWeaponCrateData.setAll(packet.crates());
         });

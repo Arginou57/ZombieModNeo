@@ -17,16 +17,20 @@ public class ServerWeaponCrateTracker {
 
     public static void addWeaponCrate(BlockPos pos, int cost) {
         weaponCrates.put(pos, cost);
+        System.out.println("[ServerWeaponCrateTracker] Caisse ajoutée: " + pos + " -> " + cost + " points");
+        System.out.println("[ServerWeaponCrateTracker] Total caisses: " + weaponCrates.size());
         syncToAllPlayers();
     }
 
     public static void removeWeaponCrate(BlockPos pos) {
         weaponCrates.remove(pos);
+        System.out.println("[ServerWeaponCrateTracker] Caisse supprimée: " + pos);
         syncToAllPlayers();
     }
 
     public static void clear() {
         weaponCrates.clear();
+        System.out.println("[ServerWeaponCrateTracker] Toutes les caisses effacées");
         syncToAllPlayers();
     }
 
@@ -35,6 +39,7 @@ public class ServerWeaponCrateTracker {
     }
 
     public static void syncToAllPlayers() {
+        System.out.println("[ServerWeaponCrateTracker] Synchronisation de " + weaponCrates.size() + " caisses avec tous les joueurs");
         NetworkHandler.sendToAllPlayers(new WeaponCrateSyncPacket(getAllCrates()));
     }
 
