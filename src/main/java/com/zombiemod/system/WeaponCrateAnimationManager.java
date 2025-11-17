@@ -1,6 +1,7 @@
 package com.zombiemod.system;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -107,13 +108,24 @@ public class WeaponCrateAnimationManager {
         );
         display.setPos(pos);
 
-        // Définir l'item à afficher via entity data
-        display.getEntityData().set(Display.ItemDisplay.DATA_ITEM_STACK_ID, item);
+        // Définir l'item à afficher via NBT
+        CompoundTag nbt = new CompoundTag();
 
-        // Transformation : mode FIXED (valeur 1)
+        // Sauvegarder les données actuelles de l'entité
+        display.saveWithoutId(nbt);
+
+        // Ajouter l'item dans le NBT
+        CompoundTag itemTag = new CompoundTag();
+        item.save(level.registryAccess(), itemTag);
+        nbt.put("item", itemTag);
+
+        // Transformation : mode FIXED (valeur 8)
         // 0 = NONE, 1 = THIRD_PERSON_LEFT_HAND, 2 = THIRD_PERSON_RIGHT_HAND,
         // 3 = FIRST_PERSON_LEFT_HAND, 4 = FIRST_PERSON_RIGHT_HAND, 5 = HEAD, 6 = GUI, 7 = GROUND, 8 = FIXED
-        display.getEntityData().set(Display.ItemDisplay.DATA_ITEM_TRANSFORM_ID, (byte) 8);
+        nbt.putByte("item_display", (byte) 8);
+
+        // Charger le NBT dans l'entité
+        display.load(nbt);
 
         // Ajouter au monde
         if (!level.addFreshEntity(display)) {
@@ -200,13 +212,29 @@ public class WeaponCrateAnimationManager {
                         SoundSource.BLOCKS, 0.5f, 1.0f + (anim.ticksRunning * 0.01f));
                 }
 
-                // Mettre à jour l'item affiché via entity data
-                anim.displayEntity.getEntityData().set(Display.ItemDisplay.DATA_ITEM_STACK_ID, nextItem);
+                // Mettre à jour l'item affiché
+                updateDisplayItem(anim.displayEntity, nextItem, level);
             }
 
             // Rotation
             rotateDisplay(anim.displayEntity, anim.ticksRunning);
         }
+    }
+
+    /**
+     * Met à jour l'item affiché par une Display entity
+     */
+    private static void updateDisplayItem(Display.ItemDisplay display, ItemStack item, ServerLevel level) {
+        CompoundTag nbt = new CompoundTag();
+        display.saveWithoutId(nbt);
+
+        // Mettre à jour l'item dans le NBT
+        CompoundTag itemTag = new CompoundTag();
+        item.save(level.registryAccess(), itemTag);
+        nbt.put("item", itemTag);
+
+        // Recharger le NBT
+        display.load(nbt);
     }
 
     /**
