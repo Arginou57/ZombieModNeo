@@ -12,6 +12,11 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 - Détection par raycasting du bloc regardé (distance : 5 blocs)
 - Interface utilisateur améliorée pour une meilleure expérience de jeu
 
+### 🐛 Corrigé
+- **Affichage HUD weapon crates** : Fix de la synchronisation client-serveur pour afficher correctement le prix des caisses
+- Système de cache côté client pour les données des weapon crates
+- Synchronisation automatique des caisses au login des joueurs
+
 ### 🔧 Technique
 - Ajout de la méthode `renderWeaponCrateInfo()` dans `ZombieHUD.java`
 - Utilisation de `ClipContext` pour le raycasting côté client
@@ -19,6 +24,11 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 - Ajout du champ `maxSpeed` dans `MobEntry` (`ZombieMobsConfig.java`)
 - La vitesse est désormais plafonnée : `Math.min(baseSpeed + speedPerWave * wave, maxSpeed)`
 - Rétrocompatibilité : si `maxSpeed = 0`, aucune limite n'est appliquée
+- **Synchronisation weapon crates** :
+  - `ClientWeaponCrateData` : Cache côté client
+  - `WeaponCrateSyncPacket` : Packet de synchronisation réseau
+  - `ServerWeaponCrateTracker` : Tracker côté serveur
+  - `PlayerConnectionHandler` : Synchronisation au login
 
 ---
 
