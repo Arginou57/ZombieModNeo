@@ -96,15 +96,25 @@ public class WeaponCrateEventHandler {
 
     /**
      * Scanne un niveau complet pour les weapon crates
+     * Parcourt toutes les BlockEntities du niveau
      */
     private static void scanLevelForWeaponCrates(ServerLevel level) {
         System.out.println("[WeaponCrateEventHandler] Scan du niveau " + level.dimension().location());
 
-        // Parcourir tous les chunks chargés
-        level.getChunkSource().chunkMap.getChunks().forEach(holder -> {
-            LevelChunk chunk = holder.getTickingChunk();
-            if (chunk != null) {
-                scanChunkForWeaponCrates(level, chunk);
+        // Parcourir toutes les BlockEntities chargées
+        // blockEntityList contient toutes les block entities des chunks chargés
+        level.blockEntityList.forEach(blockEntity -> {
+            if (blockEntity instanceof ChestBlockEntity chest) {
+                // Vérifier si c'est une weapon crate
+                if (chest.getPersistentData().getBoolean("IsWeaponCrate")) {
+                    int cost = chest.getPersistentData().getInt("Cost");
+                    BlockPos pos = chest.getBlockPos();
+
+                    // Ajouter au tracker (sans sync pour éviter spam réseau)
+                    ServerWeaponCrateTracker.addWeaponCrateNoSync(pos, cost);
+
+                    System.out.println("[WeaponCrateEventHandler] Weapon crate trouvée: " + pos + " -> " + cost + " points");
+                }
             }
         });
     }
