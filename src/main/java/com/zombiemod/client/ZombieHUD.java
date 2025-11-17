@@ -3,10 +3,17 @@ package com.zombiemod.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.zombiemod.manager.GameManager;
 import com.zombiemod.network.packet.GameSyncPacket;
+import com.zombiemod.system.WeaponCrateManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.block.ChestBlock;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 
@@ -97,6 +104,11 @@ public class ZombieHUD {
                 }
             }
         }
+
+        // Afficher le prix de la caisse si le joueur la regarde (seulement si actif)
+        if (ClientGameData.isLocalPlayerActive()) {
+            renderWeaponCrateInfo(graphics, font, mc, player);
+        }
     }
 
     private static void renderPointsAnimations(GuiGraphics graphics, Font font) {
@@ -130,5 +142,61 @@ public class ZombieHUD {
 
             poseStack.popPose();
         }
+    }
+
+    private static void renderWeaponCrateInfo(GuiGraphics graphics, Font font, Minecraft mc, Player player) {
+        // Raycasting pour détecter le bloc regardé
+        Vec3 eyePos = player.getEyePosition(1.0f);
+        Vec3 lookVec = player.getViewVector(1.0f);
+        Vec3 endPos = eyePos.add(lookVec.scale(5.0)); // Distance de 5 blocs
+
+        ClipContext context = new ClipContext(
+            eyePos,
+            endPos,
+            ClipContext.Block.OUTLINE,
+            ClipContext.Fluid.NONE,
+            player
+        );
+
+        BlockHitResult hitResult = player.level().clip(context);
+
+        // Vérifier si on regarde un bloc
+        if (hitResult.getType() != HitResult.Type.BLOCK) {
+            return;
+        }
+
+        BlockPos lookingAt = hitResult.getBlockPos();
+
+        // Vérifier si c'est un coffre
+        if (!(player.level().getBlockState(lookingAt).getBlock() instanceof ChestBlock)) {
+            return;
+        }
+
+        // Vérifier si c'est une weapon crate
+        if (!WeaponCrateManager.isWeaponCrate(player.level(), lookingAt)) {
+            return;
+        }
+
+        // Récupérer le coût
+        int cost = WeaponCrateManager.getCost(player.level(), lookingAt);
+
+        // Position au-dessus de la hotbar (centré)
+        int screenWidth = graphics.guiWidth();
+        int screenHeight = graphics.guiHeight();
+
+        // Position Y : au-dessus de la hotbar (hotbar est à screenHeight - 40 environ)
+        int baseY = screenHeight - 70;
+
+        // Afficher le prix
+        String priceText = "§6§l" + cost + " Points";
+        int priceWidth = font.width(priceText);
+        int priceX = (screenWidth - priceWidth) / 2;
+        graphics.drawString(font, priceText, priceX, baseY, 0xFFFFFF);
+
+        // Afficher "Ouvrir caisse" en dessous
+        String actionText = "§eOuvrir Caisse";
+        int actionWidth = font.width(actionText);
+        int actionX = (screenWidth - actionWidth) / 2;
+        graphics.drawString(font, actionText, actionX, baseY + 12, 0xFFFFFF);
     }
 }
