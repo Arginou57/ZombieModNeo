@@ -2,6 +2,7 @@ package com.zombiemod.event;
 
 import com.zombiemod.manager.GameManager;
 import com.zombiemod.manager.PointsManager;
+import com.zombiemod.system.WeaponCrateAnimationManager;
 import com.zombiemod.system.WeaponCrateManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -57,25 +58,41 @@ public class ChestInteractionHandler {
             // Retirer les points
             PointsManager.removePoints(player.getUUID(), cost);
 
-            // Obtenir une arme aléatoire
+            // Obtenir toutes les armes possibles pour l'animation
+            java.util.List<WeaponCrateManager.WeaponConfig> allWeapons = WeaponCrateManager.getAllWeapons(level, pos);
+
+            // Obtenir l'arme gagnée
             WeaponCrateManager.WeaponConfig weapon = WeaponCrateManager.getRandomWeapon(level, pos, level.random);
 
             if (weapon != null) {
-                ItemStack item = weapon.toItemStack(level);
+                ItemStack wonItem = weapon.toItemStack(level);
+
+                // Déclencher l'animation
+                ServerLevel serverLevel = (ServerLevel) level;
+                if (allWeapons.size() == 1) {
+                    // Une seule arme : affichage statique (pas d'animation pour l'instant, juste donner l'item)
+                    // On pourrait activer l'affichage statique permanent ici si souhaité
+                } else {
+                    // Plusieurs armes : animation de roulette
+                    java.util.List<ItemStack> itemsForAnimation = new java.util.ArrayList<>();
+                    for (WeaponCrateManager.WeaponConfig wc : allWeapons) {
+                        itemsForAnimation.add(wc.toItemStack(level));
+                    }
+                    WeaponCrateAnimationManager.startRouletteAnimation(serverLevel, pos, itemsForAnimation, wonItem);
+                }
 
                 // Ajouter flèches si arc/arbalète
                 if (weapon.itemId.contains("bow") || weapon.itemId.contains("crossbow")) {
                     player.addItem(new ItemStack(Items.ARROW, 64));
                 }
 
-                player.addItem(item);
+                player.addItem(wonItem);
                 player.sendSystemMessage(Component.literal("§6§l✦ §e" + weapon.displayName + " §6§l✦"));
                 player.sendSystemMessage(Component.literal("§7Points restants: §e" + PointsManager.getPoints(player.getUUID())));
 
                 level.playSound(null, pos, SoundEvents.CHEST_OPEN, SoundSource.BLOCKS, 1.0f, 1.0f);
-                level.playSound(null, pos, SoundEvents.PLAYER_LEVELUP, SoundSource.BLOCKS, 0.5f, 1.5f);
 
-                spawnParticles((ServerLevel) level, pos);
+                spawnParticles(serverLevel, pos);
             } else {
                 player.sendSystemMessage(Component.literal("§cErreur: Cette caisse ne contient aucune arme !"));
                 // Rembourser

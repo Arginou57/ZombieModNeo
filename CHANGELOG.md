@@ -8,6 +8,12 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 
 ### ✨ Ajouté
 - **Affichage HUD des caisses d'armes** : Quand un joueur regarde une weapon crate, le prix et l'action "Ouvrir Caisse" s'affichent au-dessus de la hotbar
+- **Animation des weapon crates** : Animation de roulette épique lors de l'achat d'une arme
+  - Les items s'affichent en 3D au-dessus du coffre (ItemDisplay entity)
+  - Animation de 3 secondes avec changement rapide d'items puis ralentissement
+  - Sons et effets visuels immersifs
+  - Rotation de l'item affiché
+  - Affichage final de l'arme gagnée puis disparition
 - **Limite de vitesse maximale pour les mobs** : Nouveau paramètre `maxSpeed` dans `zombiemobs.json` pour plafonner la vitesse des monstres
 - Détection par raycasting du bloc regardé (distance : 5 blocs)
 - Interface utilisateur améliorée pour une meilleure expérience de jeu
@@ -29,6 +35,12 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
   - `WeaponCrateSyncPacket` : Packet de synchronisation réseau
   - `ServerWeaponCrateTracker` : Tracker côté serveur
   - `PlayerConnectionHandler` : Synchronisation au login
+- **Animation weapon crates** :
+  - `WeaponCrateAnimationManager` : Gestionnaire d'animations avec Display.ItemDisplay
+  - Animation de roulette avec ralentissement progressif (2 ticks → 4 ticks → 8 ticks)
+  - Tick system pour mise à jour des animations
+  - Rotation automatique des items (3°/tick)
+  - `WeaponCrateManager.getAllWeapons()` : Récupère toutes les armes d'une caisse pour l'animation
 
 ---
 

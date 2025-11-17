@@ -81,5 +81,8 @@ public class ZombieMod {
     public void onServerTick(ServerTickEvent.Post event) {
         ServerLevel overworld = event.getServer().overworld();
         GameManager.tick(overworld);
+
+        // Tick des animations de weapon crates
+        com.zombiemod.system.WeaponCrateAnimationManager.tick(overworld);
     }
 }

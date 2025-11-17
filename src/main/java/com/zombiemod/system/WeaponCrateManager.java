@@ -265,6 +265,79 @@ public class WeaponCrateManager {
         return null;
     }
 
+    /**
+     * Récupère toutes les armes possibles d'une caisse (pour l'animation)
+     */
+    public static List<WeaponConfig> getAllWeapons(Level level, BlockPos pos) {
+        List<WeaponConfig> allWeapons = new ArrayList<>();
+
+        BlockEntity be = level.getBlockEntity(pos);
+        if (!(be instanceof ChestBlockEntity chest)) {
+            return allWeapons;
+        }
+
+        CompoundTag data = chest.getPersistentData();
+        ListTag weapons = data.getList("Weapons", Tag.TAG_COMPOUND);
+
+        if (weapons.isEmpty()) {
+            return allWeapons;
+        }
+
+        // Parcourir toutes les armes
+        for (Tag tag : weapons) {
+            CompoundTag weaponTag = (CompoundTag) tag;
+
+            WeaponConfig config = new WeaponConfig();
+            config.weight = weaponTag.getInt("Weight");
+            config.displayName = weaponTag.getString("Name");
+
+            // Nouveau format : ItemStack complet sauvegardé
+            if (weaponTag.contains("ItemStackData")) {
+                CompoundTag itemData = weaponTag.getCompound("ItemStackData");
+                ItemStack stack = ItemStack.parseOptional(level.registryAccess(), itemData);
+                config.fullItemStack = stack;
+
+                if (!stack.isEmpty()) {
+                    config.itemId = level.registryAccess().registryOrThrow(Registries.ITEM)
+                            .getKey(stack.getItem()).toString();
+                    config.count = stack.getCount();
+
+                    ItemEnchantments itemEnchantments = stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
+                    itemEnchantments.entrySet().forEach(entry -> {
+                        String enchId = level.registryAccess()
+                                .registryOrThrow(Registries.ENCHANTMENT)
+                                .getKey(entry.getKey().value())
+                                .toString();
+                        int enchLevel = entry.getIntValue();
+                        config.enchantments.add(new WeaponConfig.EnchantmentData(enchId, enchLevel));
+                    });
+                } else if (weaponTag.contains("Item")) {
+                    config.itemId = weaponTag.getString("Item");
+                    config.count = weaponTag.getInt("Count");
+                }
+            } else {
+                // Ancien format
+                config.itemId = weaponTag.getString("Item");
+                config.count = weaponTag.getInt("Count");
+
+                if (weaponTag.contains("Enchantments")) {
+                    ListTag enchList = weaponTag.getList("Enchantments", Tag.TAG_COMPOUND);
+                    for (Tag enchTag : enchList) {
+                        CompoundTag ench = (CompoundTag) enchTag;
+                        config.enchantments.add(new WeaponConfig.EnchantmentData(
+                                ench.getString("Id"),
+                                ench.getInt("Level")
+                        ));
+                    }
+                }
+            }
+
+            allWeapons.add(config);
+        }
+
+        return allWeapons;
+    }
+
     public static void clearWeapons(Level level, BlockPos pos) {
         BlockEntity be = level.getBlockEntity(pos);
         if (be instanceof ChestBlockEntity chest) {
