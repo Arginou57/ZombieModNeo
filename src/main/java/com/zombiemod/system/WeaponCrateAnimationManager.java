@@ -107,11 +107,13 @@ public class WeaponCrateAnimationManager {
         );
         display.setPos(pos);
 
-        // Définir l'item à afficher
-        display.setItemStack(item);
+        // Définir l'item à afficher via entity data
+        display.getEntityData().set(Display.ItemDisplay.DATA_ITEM_STACK_ID, item);
 
-        // Transformation : rotation et échelle
-        display.setItemTransform(Display.ItemDisplay.ItemRenderState.FIXED);
+        // Transformation : mode FIXED (valeur 1)
+        // 0 = NONE, 1 = THIRD_PERSON_LEFT_HAND, 2 = THIRD_PERSON_RIGHT_HAND,
+        // 3 = FIRST_PERSON_LEFT_HAND, 4 = FIRST_PERSON_RIGHT_HAND, 5 = HEAD, 6 = GUI, 7 = GROUND, 8 = FIXED
+        display.getEntityData().set(Display.ItemDisplay.DATA_ITEM_TRANSFORM_ID, (byte) 8);
 
         // Ajouter au monde
         if (!level.addFreshEntity(display)) {
@@ -198,7 +200,8 @@ public class WeaponCrateAnimationManager {
                         SoundSource.BLOCKS, 0.5f, 1.0f + (anim.ticksRunning * 0.01f));
                 }
 
-                anim.displayEntity.setItemStack(nextItem);
+                // Mettre à jour l'item affiché via entity data
+                anim.displayEntity.getEntityData().set(Display.ItemDisplay.DATA_ITEM_STACK_ID, nextItem);
             }
 
             // Rotation
