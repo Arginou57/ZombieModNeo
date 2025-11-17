@@ -47,36 +47,27 @@ public class WeaponCrateEventHandler {
     }
 
     /**
-     * Au démarrage du serveur, scanner tous les chunks chargés
-     * pour trouver les weapon crates existantes
+     * Au démarrage du serveur, réinitialiser le tracker
+     * Les weapon crates seront rechargées progressivement via ChunkLoad events
      */
     @SubscribeEvent
     public static void onServerStarted(ServerStartedEvent event) {
-        System.out.println("[WeaponCrateEventHandler] Démarrage du serveur - Scan des weapon crates...");
-
-        // Parcourir tous les niveaux (dimensions)
-        event.getServer().getAllLevels().forEach(level -> {
-            if (level instanceof ServerLevel serverLevel) {
-                scanLevelForWeaponCrates(serverLevel);
-            }
-        });
-
-        // Synchroniser avec tous les clients (quand ils se connecteront)
-        ServerWeaponCrateTracker.syncToAllPlayers();
-
-        System.out.println("[WeaponCrateEventHandler] Scan terminé - " +
-            ServerWeaponCrateTracker.getAllCrates().size() + " weapon crates trouvées");
+        System.out.println("[WeaponCrateEventHandler] Démarrage du serveur - Réinitialisation du tracker");
+        ServerWeaponCrateTracker.reset();
+        System.out.println("[WeaponCrateEventHandler] Les weapon crates seront rechargées lors du chargement des chunks");
     }
 
     /**
      * Quand un chunk est chargé, scanner les weapon crates dedans
-     * (pour les chunks qui n'étaient pas chargés au démarrage)
+     * Reconstruit progressivement le tracker après redémarrage
      */
     @SubscribeEvent
     public static void onChunkLoad(ChunkEvent.Load event) {
         if (event.getLevel() instanceof ServerLevel serverLevel) {
             if (event.getChunk() instanceof LevelChunk chunk) {
                 scanChunkForWeaponCrates(serverLevel, chunk);
+                // Synchroniser après chaque chunk chargé (les joueurs verront progressivement les crates)
+                ServerWeaponCrateTracker.syncToAllPlayers();
             }
         }
     }
@@ -90,33 +81,10 @@ public class WeaponCrateEventHandler {
         if (event.getLevel() instanceof ServerLevel serverLevel) {
             if (event.getChunk() instanceof LevelChunk chunk) {
                 removeChunkWeaponCrates(chunk);
+                // Synchroniser après suppression
+                ServerWeaponCrateTracker.syncToAllPlayers();
             }
         }
-    }
-
-    /**
-     * Scanne un niveau complet pour les weapon crates
-     * Parcourt toutes les BlockEntities du niveau
-     */
-    private static void scanLevelForWeaponCrates(ServerLevel level) {
-        System.out.println("[WeaponCrateEventHandler] Scan du niveau " + level.dimension().location());
-
-        // Parcourir toutes les BlockEntities chargées
-        // blockEntityList contient toutes les block entities des chunks chargés
-        level.blockEntityList.forEach(blockEntity -> {
-            if (blockEntity instanceof ChestBlockEntity chest) {
-                // Vérifier si c'est une weapon crate
-                if (chest.getPersistentData().getBoolean("IsWeaponCrate")) {
-                    int cost = chest.getPersistentData().getInt("Cost");
-                    BlockPos pos = chest.getBlockPos();
-
-                    // Ajouter au tracker (sans sync pour éviter spam réseau)
-                    ServerWeaponCrateTracker.addWeaponCrateNoSync(pos, cost);
-
-                    System.out.println("[WeaponCrateEventHandler] Weapon crate trouvée: " + pos + " -> " + cost + " points");
-                }
-            }
-        });
     }
 
     /**
@@ -130,10 +98,10 @@ public class WeaponCrateEventHandler {
                 if (chest.getPersistentData().getBoolean("IsWeaponCrate")) {
                     int cost = chest.getPersistentData().getInt("Cost");
 
-                    // Ajouter au tracker (sans sync pour éviter spam réseau)
+                    // Ajouter au tracker (sans sync - sera fait après scan du chunk complet)
                     ServerWeaponCrateTracker.addWeaponCrateNoSync(pos, cost);
 
-                    System.out.println("[WeaponCrateEventHandler] Weapon crate trouvée: " + pos + " -> " + cost + " points");
+                    System.out.println("[WeaponCrateEventHandler] Weapon crate trouvée dans chunk: " + pos + " -> " + cost + " points");
                 }
             }
         });
