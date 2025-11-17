@@ -1,0 +1,26 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="All Rights Reserved"
+
+[[mods]]
+modId="zombiemod"
+version="1.0.0"
+displayName="Zombie Mode"
+description='''
+Un mod de mode zombie pour Minecraft avec système de vagues, points, et caisses d'armes.
+'''
+authors="ZombieMod Team"
+
+[[dependencies.zombiemod]]
+modId="neoforge"
+type="required"
+versionRange="[21.1,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.zombiemod]]
+modId="minecraft"
+type="required"
+versionRange="[1.21.1,)"
+ordering="NONE"
+side="BOTH"
