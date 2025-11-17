@@ -17,12 +17,14 @@ public class ZombieMobsConfig {
         public double chance; // Chance d'apparition (0.0 à 1.0, doit totaliser 1.0 ou moins)
         public double baseSpeed; // Vitesse de base du mob
         public double speedPerWave; // Vitesse supplémentaire ajoutée par vague
+        public double maxSpeed; // Vitesse maximale (plafond)
 
-        public MobEntry(String mobType, double chance, double baseSpeed, double speedPerWave) {
+        public MobEntry(String mobType, double chance, double baseSpeed, double speedPerWave, double maxSpeed) {
             this.mobType = mobType;
             this.chance = chance;
             this.baseSpeed = baseSpeed;
             this.speedPerWave = speedPerWave;
+            this.maxSpeed = maxSpeed;
         }
     }
 
@@ -37,7 +39,8 @@ public class ZombieMobsConfig {
         // Mobs par défaut (100% zombies)
         // baseSpeed: 0.23 (vitesse normale d'un zombie)
         // speedPerWave: 0.01 (augmentation de vitesse par vague)
-        mobs.add(new MobEntry("minecraft:zombie", 1.0, 0.23, 0.01));
+        // maxSpeed: 0.50 (plafond de vitesse, atteint à la vague 27)
+        mobs.add(new MobEntry("minecraft:zombie", 1.0, 0.23, 0.01, 0.50));
     }
 
     public static void init(File configDir) {
@@ -127,7 +130,7 @@ public class ZombieMobsConfig {
 
         // Fallback sur le premier mob si aucun n'a été sélectionné
         if (mobs.isEmpty()) {
-            return new MobEntry("minecraft:zombie", 1.0, 0.23, 0.01);
+            return new MobEntry("minecraft:zombie", 1.0, 0.23, 0.01, 0.50);
         }
         return mobs.get(0);
     }

@@ -116,9 +116,11 @@ public class WaveManager {
         double followRange = ZombieConfig.get().getZombieFollowRange();
         mob.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.FOLLOW_RANGE).setBaseValue(followRange);
 
-        // Vitesse progressive : baseSpeed + (speedPerWave * currentWave)
+        // Vitesse progressive : baseSpeed + (speedPerWave * currentWave), plafonnée à maxSpeed
         double speed = mobEntry.baseSpeed + (mobEntry.speedPerWave * currentWave);
-        mob.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED).setBaseValue(speed);
+        // Appliquer la limite de vitesse si maxSpeed > 0 (rétrocompatibilité)
+        double finalSpeed = (mobEntry.maxSpeed > 0) ? Math.min(speed, mobEntry.maxSpeed) : speed;
+        mob.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED).setBaseValue(finalSpeed);
 
         // Désactiver les drops
         mob.setCanPickUpLoot(false);

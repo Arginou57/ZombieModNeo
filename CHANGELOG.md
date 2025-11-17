@@ -8,6 +8,7 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 
 ### ✨ Ajouté
 - **Affichage HUD des caisses d'armes** : Quand un joueur regarde une weapon crate, le prix et l'action "Ouvrir Caisse" s'affichent au-dessus de la hotbar
+- **Limite de vitesse maximale pour les mobs** : Nouveau paramètre `maxSpeed` dans `zombiemobs.json` pour plafonner la vitesse des monstres
 - Détection par raycasting du bloc regardé (distance : 5 blocs)
 - Interface utilisateur améliorée pour une meilleure expérience de jeu
 
@@ -15,6 +16,9 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 - Ajout de la méthode `renderWeaponCrateInfo()` dans `ZombieHUD.java`
 - Utilisation de `ClipContext` pour le raycasting côté client
 - Affichage centré au-dessus de la hotbar (Y: screenHeight - 70)
+- Ajout du champ `maxSpeed` dans `MobEntry` (`ZombieMobsConfig.java`)
+- La vitesse est désormais plafonnée : `Math.min(baseSpeed + speedPerWave * wave, maxSpeed)`
+- Rétrocompatibilité : si `maxSpeed = 0`, aucune limite n'est appliquée
 
 ---
 

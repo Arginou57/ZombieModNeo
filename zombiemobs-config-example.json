@@ -1,0 +1,11 @@
+{
+  "mobs": [
+    {
+      "mobType": "minecraft:zombie",
+      "chance": 1.0,
+      "baseSpeed": 0.23,
+      "speedPerWave": 0.01,
+      "maxSpeed": 0.5
+    }
+  ]
+}
