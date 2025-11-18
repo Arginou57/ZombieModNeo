@@ -1,6 +1,7 @@
 package com.zombiemod.system;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -9,6 +10,9 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.ChestBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.*;
@@ -199,10 +203,30 @@ public class WeaponCrateAnimationManager {
      * Utilise le format SNBT correct pour Minecraft 1.21+
      */
     private static Display.ItemDisplay summonItemDisplay(ServerLevel level, BlockPos cratePos, ItemStack item) {
-        // Position au-dessus du coffre
+        // Obtenir la direction du coffre
+        BlockState chestState = level.getBlockState(cratePos);
+        Direction facing = chestState.hasProperty(BlockStateProperties.HORIZONTAL_FACING)
+            ? chestState.getValue(BlockStateProperties.HORIZONTAL_FACING)
+            : Direction.NORTH;
+
+        // Position de base au-dessus du coffre
         double x = cratePos.getX() + 0.5;
         double y = cratePos.getY() + 1.3;
         double z = cratePos.getZ() + 0.5;
+
+        // Ajuster la position selon la direction du coffre (légèrement devant)
+        double offsetDistance = 0.2; // Distance devant le coffre
+        x += facing.getStepX() * offsetDistance;
+        z += facing.getStepZ() * offsetDistance;
+
+        // Calculer la rotation (yaw) selon la direction
+        float yaw = switch (facing) {
+            case NORTH -> 180f;
+            case SOUTH -> 0f;
+            case EAST -> 270f;
+            case WEST -> 90f;
+            default -> 0f;
+        };
 
         // Sauvegarder l'item en NBT complet (utiliser le retour de save())
         // save() retourne Tag, on le cast en CompoundTag
@@ -212,10 +236,10 @@ public class WeaponCrateAnimationManager {
         // CompoundTag.toString() retourne directement le format SNBT
         String itemSnbt = itemNbt.toString();
 
-        // Construire la commande summon
+        // Construire la commande summon avec rotation
         String command = String.format(
-            "summon minecraft:item_display %.2f %.2f %.2f {item:%s,item_display:\"fixed\"}",
-            x, y, z, itemSnbt
+            "summon minecraft:item_display %.2f %.2f %.2f {item:%s,item_display:\"fixed\",Rotation:[%.1ff,0f]}",
+            x, y, z, itemSnbt, yaw
         );
 
         System.out.println("[WeaponCrateAnimation] Commande summon: " + command);
