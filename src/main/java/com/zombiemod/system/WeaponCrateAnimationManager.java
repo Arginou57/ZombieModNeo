@@ -50,6 +50,28 @@ public class WeaponCrateAnimationManager {
     private static final Random random = new Random();
 
     /**
+     * Démarre un affichage permanent (1 seul item dans la caisse)
+     * L'item reste affiché au-dessus du coffre
+     */
+    public static void startStaticDisplay(ServerLevel level, BlockPos cratePos, ItemStack item) {
+        // Supprimer toute animation existante à cette position
+        stopAnimation(cratePos);
+
+        // Créer l'affichage permanent
+        Display.ItemDisplay display = summonItemDisplay(level, cratePos, item);
+        if (display == null) return;
+
+        // Créer une animation statique (sans joueur ni roulette)
+        CrateAnimation animation = new CrateAnimation(level, cratePos, null,
+            Collections.singletonList(item), item, false);
+        animation.currentDisplay = display;
+        activeAnimations.put(cratePos, animation);
+
+        System.out.println("[WeaponCrateAnimation] Affichage statique démarré à " + cratePos
+            + " pour item " + item.getDisplayName().getString());
+    }
+
+    /**
      * Démarre une animation de roulette (plusieurs items dans la caisse)
      * L'item sera donné au joueur à la FIN de l'animation
      */
@@ -58,9 +80,10 @@ public class WeaponCrateAnimationManager {
         // Supprimer toute animation existante à cette position
         stopAnimation(cratePos);
 
-        // Si un seul item, pas d'animation
+        // Si un seul item, affichage statique au-dessus du coffre
         if (possibleItems.size() < 2) {
-            // Donner l'item immédiatement au joueur
+            startStaticDisplay(level, cratePos, wonItem);
+            // Donner l'item immédiatement au joueur quand même
             player.getInventory().add(wonItem.copy());
             player.displayClientMessage(net.minecraft.network.chat.Component.literal(
                 "§6Vous avez reçu : §e" + wonItem.getDisplayName().getString()), false);
@@ -161,6 +184,7 @@ public class WeaponCrateAnimationManager {
     /**
      * Summon une nouvelle ItemDisplay entity en utilisant une commande
      * C'est la méthode la plus fiable pour garantir la synchronisation client-serveur
+     * Inclut TOUS les NBT/components de l'ItemStack (pour items moddés)
      */
     private static Display.ItemDisplay summonItemDisplay(ServerLevel level, BlockPos cratePos, ItemStack item) {
         // Position au-dessus du coffre
@@ -168,13 +192,17 @@ public class WeaponCrateAnimationManager {
         double y = cratePos.getY() + 1.3;
         double z = cratePos.getZ() + 0.5;
 
-        // Obtenir l'ID de l'item
-        String itemId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(item.getItem()).toString();
+        // Sauvegarder l'item en NBT complet (avec tous les components)
+        CompoundTag itemNbt = new CompoundTag();
+        item.save(level.registryAccess(), itemNbt);
 
-        // Construire la commande summon
+        // Convertir le NBT en format SNBT (Stringified NBT) pour la commande
+        String itemSnbt = itemNbt.toString();
+
+        // Construire la commande summon avec le NBT complet de l'item
         String command = String.format(
-            "summon minecraft:item_display %.2f %.2f %.2f {item:{id:\"%s\",count:%d},item_display:\"fixed\"}",
-            x, y, z, itemId, item.getCount()
+            "summon minecraft:item_display %.2f %.2f %.2f {item:%s,item_display:\"fixed\"}",
+            x, y, z, itemSnbt
         );
 
         try {
@@ -199,8 +227,8 @@ public class WeaponCrateAnimationManager {
 
             if (!nearbyDisplays.isEmpty()) {
                 Display.ItemDisplay display = nearbyDisplays.get(0);
-                System.out.println("[WeaponCrateAnimation] Display entity summoned via command: " + display.getId()
-                    + " pour item " + itemId + " à " + cratePos);
+                System.out.println("[WeaponCrateAnimation] Display entity summoned avec NBT complet: " + display.getId()
+                    + " pour item " + item.getDisplayName().getString() + " à " + cratePos);
                 return display;
             } else {
                 System.err.println("[WeaponCrateAnimation] Entity summon réussie mais introuvable");
