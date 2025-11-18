@@ -125,6 +125,7 @@ public class WeaponCrateManager {
             ListTag weapons = data.getList("Weapons", Tag.TAG_COMPOUND);
 
             int weaponCountBefore = weapons.size();
+            System.out.println("[WeaponCrate] addWeapon à " + pos + " - Armes AVANT: " + weaponCountBefore);
 
             CompoundTag weapon = new CompoundTag();
             weapon.putString("Item", itemId);
@@ -147,9 +148,12 @@ public class WeaponCrateManager {
             data.put("Weapons", weapons);
             chest.setChanged();
 
+            int weaponCountAfter = weapons.size();
+            System.out.println("[WeaponCrate] addWeapon à " + pos + " - Armes APRÈS: " + weaponCountAfter);
+
             // Gérer l'affichage après ajout
             if (!level.isClientSide() && level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
-                updateDisplayAfterWeaponChange(serverLevel, pos, weaponCountBefore, weapons.size());
+                updateDisplayAfterWeaponChange(serverLevel, pos, weaponCountBefore, weaponCountAfter);
             }
         }
     }
@@ -162,6 +166,7 @@ public class WeaponCrateManager {
             ListTag weapons = data.getList("Weapons", Tag.TAG_COMPOUND);
 
             int weaponCountBefore = weapons.size();
+            System.out.println("[WeaponCrate] addWeaponFromItemStack à " + pos + " - Armes AVANT: " + weaponCountBefore);
 
             CompoundTag weapon = new CompoundTag();
             weapon.putInt("Weight", weight);
@@ -182,9 +187,12 @@ public class WeaponCrateManager {
             data.put("Weapons", weapons);
             chest.setChanged();
 
+            int weaponCountAfter = weapons.size();
+            System.out.println("[WeaponCrate] addWeaponFromItemStack à " + pos + " - Armes APRÈS: " + weaponCountAfter);
+
             // Gérer l'affichage après ajout
             if (!level.isClientSide() && level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
-                updateDisplayAfterWeaponChange(serverLevel, pos, weaponCountBefore, weapons.size());
+                updateDisplayAfterWeaponChange(serverLevel, pos, weaponCountBefore, weaponCountAfter);
             }
         }
     }
@@ -367,8 +375,11 @@ public class WeaponCrateManager {
      * - 1 -> 2 armes : supprimer affichage statique (passera en mode roulette lors de l'ouverture)
      */
     private static void updateDisplayAfterWeaponChange(net.minecraft.server.level.ServerLevel level, BlockPos pos, int countBefore, int countAfter) {
+        System.out.println("[WeaponCrate] updateDisplayAfterWeaponChange à " + pos + " - Transition: " + countBefore + " -> " + countAfter);
+
         // Passage de 0 à 1 arme : créer affichage statique
         if (countBefore == 0 && countAfter == 1) {
+            System.out.println("[WeaponCrate] Détection: 0 -> 1 arme, création affichage statique");
             List<WeaponConfig> allWeapons = getAllWeapons(level, pos);
             if (!allWeapons.isEmpty()) {
                 WeaponConfig weapon = allWeapons.get(0);
@@ -381,8 +392,12 @@ public class WeaponCrateManager {
         }
         // Passage de 1 à 2 armes : supprimer affichage statique
         else if (countBefore == 1 && countAfter == 2) {
+            System.out.println("[WeaponCrate] Détection: 1 -> 2 armes, suppression affichage statique");
             WeaponCrateAnimationManager.stopAnimation(pos);
             System.out.println("[WeaponCrate] Affichage statique supprimé (passage en mode roulette) à " + pos);
+        }
+        else {
+            System.out.println("[WeaponCrate] Aucune action (transition non gérée)");
         }
     }
 
