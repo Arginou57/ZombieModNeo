@@ -205,7 +205,8 @@ public class WeaponCrateAnimationManager {
         double z = cratePos.getZ() + 0.5;
 
         // Sauvegarder l'item en NBT complet (utiliser le retour de save())
-        CompoundTag itemNbt = item.save(level.registryAccess());
+        // save() retourne Tag, on le cast en CompoundTag
+        CompoundTag itemNbt = (CompoundTag) item.save(level.registryAccess());
 
         // Convertir en SNBT (Stringified NBT) compatible avec les commandes
         // CompoundTag.toString() retourne directement le format SNBT
@@ -227,11 +228,8 @@ public class WeaponCrateAnimationManager {
                 .withPosition(new Vec3(x, y, z))
                 .withSuppressedOutput();
 
-            int result = commands.performPrefixedCommand(source, command);
-
-            if (result == 0) {
-                System.err.println("[WeaponCrateAnimation] La commande a échoué (result=0)");
-            }
+            // Exécuter la commande (performPrefixedCommand ne retourne rien en 1.21)
+            commands.performPrefixedCommand(source, command);
 
             // Attendre un tick pour que l'entité soit créée
             // Trouver l'entité qui vient d'être créée
