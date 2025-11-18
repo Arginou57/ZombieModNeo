@@ -159,37 +159,59 @@ public class WeaponCrateAnimationManager {
     }
 
     /**
-     * Summon une nouvelle ItemDisplay entity
-     * Méthode simplifiée qui laisse Minecraft gérer la synchronisation
+     * Summon une nouvelle ItemDisplay entity en utilisant une commande
+     * C'est la méthode la plus fiable pour garantir la synchronisation client-serveur
      */
     private static Display.ItemDisplay summonItemDisplay(ServerLevel level, BlockPos cratePos, ItemStack item) {
-        // Créer le NBT complet pour l'entité
-        CompoundTag nbt = new CompoundTag();
-
         // Position au-dessus du coffre
-        nbt.putDouble("x", cratePos.getX() + 0.5);
-        nbt.putDouble("y", cratePos.getY() + 1.3);
-        nbt.putDouble("z", cratePos.getZ() + 0.5);
+        double x = cratePos.getX() + 0.5;
+        double y = cratePos.getY() + 1.3;
+        double z = cratePos.getZ() + 0.5;
 
-        // Item à afficher
-        CompoundTag itemTag = new CompoundTag();
-        item.save(level.registryAccess(), itemTag);
-        nbt.put("item", itemTag);
+        // Obtenir l'ID de l'item
+        String itemId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(item.getItem()).toString();
 
-        // Mode d'affichage: "fixed"
-        nbt.putString("item_display", "fixed");
+        // Construire la commande summon
+        String command = String.format(
+            "summon minecraft:item_display %.2f %.2f %.2f {item:{id:\"%s\",count:%d},item_display:\"fixed\"}",
+            x, y, z, itemId, item.getCount()
+        );
 
-        // Créer et charger l'entité
-        Display.ItemDisplay display = new Display.ItemDisplay(EntityType.ITEM_DISPLAY, level);
-        display.load(nbt);
+        try {
+            // Exécuter la commande côté serveur
+            net.minecraft.commands.Commands commands = level.getServer().getCommands();
+            net.minecraft.commands.CommandSourceStack source = level.getServer().createCommandSourceStack()
+                .withLevel(level)
+                .withPosition(new Vec3(x, y, z))
+                .withSuppressedOutput();
 
-        // Ajouter au monde → Minecraft synchronise automatiquement !
-        if (!level.addFreshEntity(display)) {
-            System.err.println("[WeaponCrateAnimation] Impossible de summon la display entity");
+            commands.performPrefixedCommand(source, command);
+
+            // Trouver l'entité qui vient d'être créée
+            // Chercher la Display.ItemDisplay la plus proche de la position
+            java.util.List<Display.ItemDisplay> nearbyDisplays = level.getEntitiesOfClass(
+                Display.ItemDisplay.class,
+                new net.minecraft.world.phys.AABB(
+                    x - 0.1, y - 0.1, z - 0.1,
+                    x + 0.1, y + 0.1, z + 0.1
+                )
+            );
+
+            if (!nearbyDisplays.isEmpty()) {
+                Display.ItemDisplay display = nearbyDisplays.get(0);
+                System.out.println("[WeaponCrateAnimation] Display entity summoned via command: " + display.getId()
+                    + " pour item " + itemId + " à " + cratePos);
+                return display;
+            } else {
+                System.err.println("[WeaponCrateAnimation] Entity summon réussie mais introuvable");
+                return null;
+            }
+
+        } catch (Exception e) {
+            System.err.println("[WeaponCrateAnimation] Erreur lors du summon: " + e.getMessage());
+            e.printStackTrace();
             return null;
         }
-
-        return display;
     }
 
     /**
