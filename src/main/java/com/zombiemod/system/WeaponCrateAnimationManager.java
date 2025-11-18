@@ -204,13 +204,12 @@ public class WeaponCrateAnimationManager {
         double y = cratePos.getY() + 1.3;
         double z = cratePos.getZ() + 0.5;
 
-        // Sauvegarder l'item en NBT complet
-        CompoundTag itemNbt = new CompoundTag();
-        item.save(level.registryAccess(), itemNbt);
+        // Sauvegarder l'item en NBT complet (utiliser le retour de save())
+        CompoundTag itemNbt = item.save(level.registryAccess());
 
         // Convertir en SNBT (Stringified NBT) compatible avec les commandes
-        // Utiliser net.minecraft.nbt.NbtUtils pour le formatage correct
-        String itemSnbt = net.minecraft.nbt.NbtUtils.structureToSnbt(itemNbt);
+        // CompoundTag.toString() retourne directement le format SNBT
+        String itemSnbt = itemNbt.toString();
 
         // Construire la commande summon
         String command = String.format(
