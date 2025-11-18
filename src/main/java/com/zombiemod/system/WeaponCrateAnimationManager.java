@@ -99,45 +99,35 @@ public class WeaponCrateAnimationManager {
      * Utilise la même structure NBT que /summon minecraft:item_display
      */
     private static Display.ItemDisplay createItemDisplay(ServerLevel level, BlockPos cratePos, ItemStack item) {
+        // Créer le NBT COMPLET avant de créer l'entité
+        CompoundTag nbt = new CompoundTag();
+
+        // Position
+        nbt.putDouble("x", cratePos.getX() + 0.5);
+        nbt.putDouble("y", cratePos.getY() + 1.3);
+        nbt.putDouble("z", cratePos.getZ() + 0.5);
+
+        // Item à afficher
+        CompoundTag itemTag = new CompoundTag();
+        item.save(level.registryAccess(), itemTag);
+        nbt.put("item", itemTag);
+
+        // Mode d'affichage: "fixed"
+        nbt.putString("item_display", "fixed");
+
+        // Créer l'entité et charger TOUTES les données NBT
         Display.ItemDisplay display = new Display.ItemDisplay(EntityType.ITEM_DISPLAY, level);
+        display.load(nbt);
 
-        // Position : 1 bloc au-dessus du coffre, centré
-        Vec3 pos = new Vec3(
-            cratePos.getX() + 0.5,
-            cratePos.getY() + 1.3, // 1.3 blocs au-dessus pour être visible
-            cratePos.getZ() + 0.5
-        );
-        display.setPos(pos);
-
-        // Ajouter l'entité au monde AVANT de définir les données
-        // Sinon la synchronisation ne fonctionne pas
+        // Maintenant ajouter au monde avec TOUTES les données chargées
         if (!level.addFreshEntity(display)) {
             System.err.println("[WeaponCrateAnimation] Impossible de créer la display entity");
             return null;
         }
 
-        // Créer le NBT comme dans /summon minecraft:item_display ~ ~ ~ {item:{id:"iron_sword"},item_display:"fixed"}
-        CompoundTag nbt = new CompoundTag();
-
-        // Sauvegarder l'état actuel de l'entité
-        display.saveWithoutId(nbt);
-
-        // Ajouter l'item dans le NBT
-        CompoundTag itemTag = new CompoundTag();
-        item.save(level.registryAccess(), itemTag);
-        nbt.put("item", itemTag);
-
-        // item_display: "fixed" (STRING, pas byte!)
-        nbt.putString("item_display", "fixed");
-
-        // Charger le NBT APRÈS ajout au monde en utilisant readAdditionalSaveData
-        // C'est la méthode que Minecraft utilise pour charger les données d'entités
-        display.readAdditionalSaveData(nbt);
-
         System.out.println("[WeaponCrateAnimation] Display entity créée: " + display.getId()
             + " pour item " + item.getDisplayName().getString()
-            + " à " + cratePos
-            + " NBT: " + nbt.toString());
+            + " à " + cratePos);
 
         return display;
     }
@@ -233,7 +223,7 @@ public class WeaponCrateAnimationManager {
     private static void updateDisplayItem(Display.ItemDisplay display, ItemStack item, ServerLevel level) {
         // Sauvegarder l'état actuel
         CompoundTag nbt = new CompoundTag();
-        display.addAdditionalSaveData(nbt);
+        display.saveWithoutId(nbt);
 
         // Mettre à jour l'item dans le NBT
         CompoundTag itemTag = new CompoundTag();
@@ -243,8 +233,8 @@ public class WeaponCrateAnimationManager {
         // Garder item_display en "fixed"
         nbt.putString("item_display", "fixed");
 
-        // Recharger avec readAdditionalSaveData (déclenche sync auto)
-        display.readAdditionalSaveData(nbt);
+        // Recharger les données
+        display.load(nbt);
     }
 
     /**
