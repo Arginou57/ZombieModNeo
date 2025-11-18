@@ -116,6 +116,11 @@ public class WeaponCrateAnimationManager {
             Map.Entry<BlockPos, CrateAnimation> entry = iterator.next();
             CrateAnimation anim = entry.getValue();
 
+            // Affichage STATIQUE : ne rien faire, reste en permanence
+            if (!anim.isRoulette) {
+                continue;
+            }
+
             anim.ticksRunning++;
             anim.ticksSinceLastChange++;
 
