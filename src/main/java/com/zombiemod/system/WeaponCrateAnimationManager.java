@@ -235,11 +235,9 @@ public class WeaponCrateAnimationManager {
             // Définir la position
             display.moveTo(x, y, z, yaw, 0f);
 
-            // Définir l'item à afficher
-            display.setItemSlot(item.copy());
-
-            // Définir le mode d'affichage (fixed)
-            display.setItemTransform(Display.ItemDisplay.ItemRenderState.FIXED);
+            // Définir l'item à afficher via getSlot (slot 0 = item slot)
+            net.minecraft.world.inventory.SlotAccess slotAccess = display.getSlot(0);
+            slotAccess.set(item.copy());
 
             // Ajouter l'entité au monde
             if (level.addFreshEntity(display)) {
