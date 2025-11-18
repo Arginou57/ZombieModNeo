@@ -124,6 +124,8 @@ public class WeaponCrateManager {
             CompoundTag data = chest.getPersistentData();
             ListTag weapons = data.getList("Weapons", Tag.TAG_COMPOUND);
 
+            int weaponCountBefore = weapons.size();
+
             CompoundTag weapon = new CompoundTag();
             weapon.putString("Item", itemId);
             weapon.putInt("Count", count);
@@ -144,6 +146,11 @@ public class WeaponCrateManager {
             weapons.add(weapon);
             data.put("Weapons", weapons);
             chest.setChanged();
+
+            // Gérer l'affichage après ajout
+            if (!level.isClientSide() && level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+                updateDisplayAfterWeaponChange(serverLevel, pos, weaponCountBefore, weapons.size());
+            }
         }
     }
 
@@ -153,6 +160,8 @@ public class WeaponCrateManager {
         if (be instanceof ChestBlockEntity chest) {
             CompoundTag data = chest.getPersistentData();
             ListTag weapons = data.getList("Weapons", Tag.TAG_COMPOUND);
+
+            int weaponCountBefore = weapons.size();
 
             CompoundTag weapon = new CompoundTag();
             weapon.putInt("Weight", weight);
@@ -172,6 +181,11 @@ public class WeaponCrateManager {
             weapons.add(weapon);
             data.put("Weapons", weapons);
             chest.setChanged();
+
+            // Gérer l'affichage après ajout
+            if (!level.isClientSide() && level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+                updateDisplayAfterWeaponChange(serverLevel, pos, weaponCountBefore, weapons.size());
+            }
         }
     }
 
@@ -344,6 +358,31 @@ public class WeaponCrateManager {
             CompoundTag data = chest.getPersistentData();
             data.put("Weapons", new ListTag());
             chest.setChanged();
+        }
+    }
+
+    /**
+     * Met à jour l'affichage statique quand des armes sont ajoutées/supprimées
+     * - 0 -> 1 arme : créer affichage statique
+     * - 1 -> 2 armes : supprimer affichage statique (passera en mode roulette lors de l'ouverture)
+     */
+    private static void updateDisplayAfterWeaponChange(net.minecraft.server.level.ServerLevel level, BlockPos pos, int countBefore, int countAfter) {
+        // Passage de 0 à 1 arme : créer affichage statique
+        if (countBefore == 0 && countAfter == 1) {
+            List<WeaponConfig> allWeapons = getAllWeapons(level, pos);
+            if (!allWeapons.isEmpty()) {
+                WeaponConfig weapon = allWeapons.get(0);
+                ItemStack itemStack = weapon.toItemStack(level);
+                if (!itemStack.isEmpty()) {
+                    WeaponCrateAnimationManager.startStaticDisplay(level, pos, itemStack);
+                    System.out.println("[WeaponCrate] Affichage statique créé pour la première arme à " + pos);
+                }
+            }
+        }
+        // Passage de 1 à 2 armes : supprimer affichage statique
+        else if (countBefore == 1 && countAfter == 2) {
+            WeaponCrateAnimationManager.stopAnimation(pos);
+            System.out.println("[WeaponCrate] Affichage statique supprimé (passage en mode roulette) à " + pos);
         }
     }
 
