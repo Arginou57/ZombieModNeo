@@ -67,10 +67,11 @@ public class ChestInteractionHandler {
             if (weapon != null) {
                 ItemStack wonItem = weapon.toItemStack(level);
                 ServerLevel serverLevel = (ServerLevel) level;
+                net.minecraft.server.level.ServerPlayer serverPlayer = (net.minecraft.server.level.ServerPlayer) player;
 
                 // Ajouter flèches si arc/arbalète (immédiatement)
                 if (weapon.itemId.contains("bow") || weapon.itemId.contains("crossbow")) {
-                    player.addItem(new ItemStack(Items.ARROW, 64));
+                    serverPlayer.addItem(new ItemStack(Items.ARROW, 64));
                 }
 
                 // Déclencher l'animation ou donner l'item immédiatement
@@ -81,11 +82,11 @@ public class ChestInteractionHandler {
                     for (WeaponCrateManager.WeaponConfig wc : allWeapons) {
                         itemsForAnimation.add(wc.toItemStack(level));
                     }
-                    WeaponCrateAnimationManager.startRouletteAnimation(serverLevel, pos, player, itemsForAnimation, wonItem);
+                    WeaponCrateAnimationManager.startRouletteAnimation(serverLevel, pos, serverPlayer, itemsForAnimation, wonItem);
                 } else {
                     // Une seule arme : donner immédiatement (pas d'animation)
-                    player.addItem(wonItem);
-                    player.sendSystemMessage(Component.literal("§6§l✦ §e" + weapon.displayName + " §6§l✦"));
+                    serverPlayer.addItem(wonItem);
+                    serverPlayer.sendSystemMessage(Component.literal("§6§l✦ §e" + weapon.displayName + " §6§l✦"));
                 }
 
                 player.sendSystemMessage(Component.literal("§7Points restants: §e" + PointsManager.getPoints(player.getUUID())));
