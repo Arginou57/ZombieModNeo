@@ -66,28 +66,28 @@ public class ChestInteractionHandler {
 
             if (weapon != null) {
                 ItemStack wonItem = weapon.toItemStack(level);
-
-                // Déclencher l'animation
                 ServerLevel serverLevel = (ServerLevel) level;
-                if (allWeapons.size() == 1) {
-                    // Une seule arme : affichage statique (pas d'animation pour l'instant, juste donner l'item)
-                    // On pourrait activer l'affichage statique permanent ici si souhaité
-                } else {
-                    // Plusieurs armes : animation de roulette
-                    java.util.List<ItemStack> itemsForAnimation = new java.util.ArrayList<>();
-                    for (WeaponCrateManager.WeaponConfig wc : allWeapons) {
-                        itemsForAnimation.add(wc.toItemStack(level));
-                    }
-                    WeaponCrateAnimationManager.startRouletteAnimation(serverLevel, pos, itemsForAnimation, wonItem);
-                }
 
-                // Ajouter flèches si arc/arbalète
+                // Ajouter flèches si arc/arbalète (immédiatement)
                 if (weapon.itemId.contains("bow") || weapon.itemId.contains("crossbow")) {
                     player.addItem(new ItemStack(Items.ARROW, 64));
                 }
 
-                player.addItem(wonItem);
-                player.sendSystemMessage(Component.literal("§6§l✦ §e" + weapon.displayName + " §6§l✦"));
+                // Déclencher l'animation ou donner l'item immédiatement
+                if (allWeapons.size() >= 2) {
+                    // Plusieurs armes : animation de roulette
+                    // L'item sera donné au joueur À LA FIN de l'animation (par l'AnimationManager)
+                    java.util.List<ItemStack> itemsForAnimation = new java.util.ArrayList<>();
+                    for (WeaponCrateManager.WeaponConfig wc : allWeapons) {
+                        itemsForAnimation.add(wc.toItemStack(level));
+                    }
+                    WeaponCrateAnimationManager.startRouletteAnimation(serverLevel, pos, player, itemsForAnimation, wonItem);
+                } else {
+                    // Une seule arme : donner immédiatement (pas d'animation)
+                    player.addItem(wonItem);
+                    player.sendSystemMessage(Component.literal("§6§l✦ §e" + weapon.displayName + " §6§l✦"));
+                }
+
                 player.sendSystemMessage(Component.literal("§7Points restants: §e" + PointsManager.getPoints(player.getUUID())));
 
                 level.playSound(null, pos, SoundEvents.CHEST_OPEN, SoundSource.BLOCKS, 1.0f, 1.0f);

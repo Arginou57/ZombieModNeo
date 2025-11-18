@@ -3,6 +3,7 @@ package com.zombiemod.system;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Display;
@@ -15,13 +16,15 @@ import java.util.*;
 /**
  * Gère les animations des weapon crates :
  * - Affichage statique d'un item unique
- * - Animation de roulette pour plusieurs items
+ * - Animation de roulette pour plusieurs items (summon/kill à chaque frame)
  */
 public class WeaponCrateAnimationManager {
 
     private static class CrateAnimation {
         BlockPos pos;
-        Display.ItemDisplay displayEntity;
+        ServerLevel level;
+        ServerPlayer player;  // Le joueur qui a ouvert la caisse
+        Display.ItemDisplay currentDisplay;  // L'entité affichée actuellement
         List<ItemStack> possibleItems;
         ItemStack wonItem;
         int ticksRunning;
@@ -29,9 +32,11 @@ public class WeaponCrateAnimationManager {
         int ticksSinceLastChange;
         boolean isRoulette; // true = animation roulette, false = affichage statique
 
-        CrateAnimation(BlockPos pos, Display.ItemDisplay entity, List<ItemStack> items, ItemStack won, boolean roulette) {
+        CrateAnimation(ServerLevel level, BlockPos pos, ServerPlayer player, List<ItemStack> items, ItemStack won, boolean roulette) {
+            this.level = level;
             this.pos = pos;
-            this.displayEntity = entity;
+            this.player = player;
+            this.currentDisplay = null;
             this.possibleItems = items;
             this.wonItem = won;
             this.ticksRunning = 0;
@@ -45,44 +50,25 @@ public class WeaponCrateAnimationManager {
     private static final Random random = new Random();
 
     /**
-     * Démarre une animation d'affichage statique (1 seul item dans la caisse)
-     */
-    public static void startStaticDisplay(ServerLevel level, BlockPos cratePos, ItemStack item) {
-        // Supprimer toute animation existante à cette position
-        stopAnimation(cratePos);
-
-        // Créer la display entity
-        Display.ItemDisplay display = createItemDisplay(level, cratePos, item);
-        if (display == null) return;
-
-        // Créer l'animation statique
-        CrateAnimation animation = new CrateAnimation(cratePos, display,
-            Collections.singletonList(item), item, false);
-        activeAnimations.put(cratePos, animation);
-
-        System.out.println("[WeaponCrateAnimation] Affichage statique démarré à " + cratePos);
-    }
-
-    /**
      * Démarre une animation de roulette (plusieurs items dans la caisse)
+     * L'item sera donné au joueur à la FIN de l'animation
      */
-    public static void startRouletteAnimation(ServerLevel level, BlockPos cratePos,
+    public static void startRouletteAnimation(ServerLevel level, BlockPos cratePos, ServerPlayer player,
                                                List<ItemStack> possibleItems, ItemStack wonItem) {
         // Supprimer toute animation existante à cette position
         stopAnimation(cratePos);
 
-        // Vérifier qu'on a au moins 2 items pour la roulette
+        // Si un seul item, pas d'animation
         if (possibleItems.size() < 2) {
-            startStaticDisplay(level, cratePos, wonItem);
+            // Donner l'item immédiatement au joueur
+            player.getInventory().add(wonItem.copy());
+            player.displayClientMessage(net.minecraft.network.chat.Component.literal(
+                "§6Vous avez reçu : §e" + wonItem.getDisplayName().getString()), false);
             return;
         }
 
-        // Créer la display entity avec le premier item
-        Display.ItemDisplay display = createItemDisplay(level, cratePos, possibleItems.get(0));
-        if (display == null) return;
-
-        // Créer l'animation de roulette
-        CrateAnimation animation = new CrateAnimation(cratePos, display,
+        // Créer l'animation de roulette (sans display pour l'instant)
+        CrateAnimation animation = new CrateAnimation(level, cratePos, player,
             possibleItems, wonItem, true);
         activeAnimations.put(cratePos, animation);
 
@@ -91,49 +77,12 @@ public class WeaponCrateAnimationManager {
             SoundSource.BLOCKS, 1.0f, 1.0f);
 
         System.out.println("[WeaponCrateAnimation] Animation roulette démarrée à " + cratePos
-            + " avec " + possibleItems.size() + " items");
-    }
-
-    /**
-     * Crée une ItemDisplay entity au-dessus du coffre
-     * Utilise la même structure NBT que /summon minecraft:item_display
-     */
-    private static Display.ItemDisplay createItemDisplay(ServerLevel level, BlockPos cratePos, ItemStack item) {
-        // Créer le NBT COMPLET avant de créer l'entité
-        CompoundTag nbt = new CompoundTag();
-
-        // Position
-        nbt.putDouble("x", cratePos.getX() + 0.5);
-        nbt.putDouble("y", cratePos.getY() + 1.3);
-        nbt.putDouble("z", cratePos.getZ() + 0.5);
-
-        // Item à afficher
-        CompoundTag itemTag = new CompoundTag();
-        item.save(level.registryAccess(), itemTag);
-        nbt.put("item", itemTag);
-
-        // Mode d'affichage: "fixed"
-        nbt.putString("item_display", "fixed");
-
-        // Créer l'entité et charger TOUTES les données NBT
-        Display.ItemDisplay display = new Display.ItemDisplay(EntityType.ITEM_DISPLAY, level);
-        display.load(nbt);
-
-        // Maintenant ajouter au monde avec TOUTES les données chargées
-        if (!level.addFreshEntity(display)) {
-            System.err.println("[WeaponCrateAnimation] Impossible de créer la display entity");
-            return null;
-        }
-
-        System.out.println("[WeaponCrateAnimation] Display entity créée: " + display.getId()
-            + " pour item " + item.getDisplayName().getString()
-            + " à " + cratePos);
-
-        return display;
+            + " avec " + possibleItems.size() + " items pour joueur " + player.getName().getString());
     }
 
     /**
      * Tick system - appelé depuis ServerTickEvent
+     * Utilise summon/kill pour changer les items (synchronisation automatique)
      */
     public static void tick(ServerLevel level) {
         if (activeAnimations.isEmpty()) return;
@@ -144,58 +93,50 @@ public class WeaponCrateAnimationManager {
             Map.Entry<BlockPos, CrateAnimation> entry = iterator.next();
             CrateAnimation anim = entry.getValue();
 
-            // Vérifier que la display entity existe toujours
-            if (anim.displayEntity == null || !anim.displayEntity.isAlive()) {
-                iterator.remove();
-                continue;
-            }
-
             anim.ticksRunning++;
-
-            // Animation STATIQUE : reste affichée indéfiniment (ou jusqu'à suppression manuelle)
-            if (!anim.isRoulette) {
-                // Rotation lente pour rendre joli
-                rotateDisplay(anim.displayEntity, anim.ticksRunning);
-                continue;
-            }
+            anim.ticksSinceLastChange++;
 
             // Animation ROULETTE : 3 secondes (60 ticks)
             if (anim.ticksRunning >= 60) {
                 // Fin de l'animation : afficher l'item gagné pendant 1 seconde puis supprimer
                 if (anim.ticksRunning >= 80) { // 60 + 20 ticks (1 seconde)
+                    // DONNER L'ITEM AU JOUEUR À LA FIN !
+                    anim.player.getInventory().add(anim.wonItem.copy());
+                    anim.player.displayClientMessage(net.minecraft.network.chat.Component.literal(
+                        "§6Vous avez reçu : §e" + anim.wonItem.getDisplayName().getString()), false);
+
                     // Supprimer l'entity
-                    anim.displayEntity.remove(Display.ItemDisplay.RemovalReason.DISCARDED);
+                    if (anim.currentDisplay != null && anim.currentDisplay.isAlive()) {
+                        anim.currentDisplay.kill();
+                    }
                     iterator.remove();
-                    System.out.println("[WeaponCrateAnimation] Animation terminée à " + anim.pos);
+                    System.out.println("[WeaponCrateAnimation] Animation terminée à " + anim.pos + " - Item donné au joueur");
                     continue;
                 }
 
-                // Afficher l'item gagné (déjà fait à la fin du ralentissement)
-                rotateDisplay(anim.displayEntity, anim.ticksRunning);
+                // Continuer d'afficher l'item gagné avec rotation
                 continue;
             }
 
-            // Phase de roulette
-            anim.ticksSinceLastChange++;
-
             // Ralentissement progressif
             if (anim.ticksRunning < 20) {
-                anim.changeDelay = 2; // Rapide : 0.1s
+                anim.changeDelay = 2; // Rapide : 0.1s (10 fps)
             } else if (anim.ticksRunning < 40) {
-                anim.changeDelay = 4; // Moyen : 0.2s
+                anim.changeDelay = 4; // Moyen : 0.2s (5 fps)
             } else {
-                anim.changeDelay = 8; // Lent : 0.4s
+                anim.changeDelay = 8; // Lent : 0.4s (2.5 fps)
             }
 
-            // Changer l'item affiché
+            // Changer l'item affiché ?
             if (anim.ticksSinceLastChange >= anim.changeDelay) {
                 anim.ticksSinceLastChange = 0;
 
-                // À la fin (tick 56+), commencer à montrer l'item gagné
+                // Déterminer l'item à afficher
                 ItemStack nextItem;
                 if (anim.ticksRunning >= 56) {
+                    // Afficher l'item gagné à partir du tick 56
                     nextItem = anim.wonItem;
-                    // Son de victoire
+                    // Son de victoire au premier tick
                     if (anim.ticksRunning == 56) {
                         level.playSound(null, anim.pos, SoundEvents.PLAYER_LEVELUP,
                             SoundSource.BLOCKS, 1.0f, 1.0f);
@@ -208,42 +149,47 @@ public class WeaponCrateAnimationManager {
                         SoundSource.BLOCKS, 0.5f, 1.0f + (anim.ticksRunning * 0.01f));
                 }
 
-                // Mettre à jour l'item affiché
-                updateDisplayItem(anim.displayEntity, nextItem, level);
+                // KILL l'ancienne entity et SUMMON une nouvelle
+                if (anim.currentDisplay != null && anim.currentDisplay.isAlive()) {
+                    anim.currentDisplay.kill();
+                }
+                anim.currentDisplay = summonItemDisplay(level, anim.pos, nextItem);
             }
-
-            // Rotation
-            rotateDisplay(anim.displayEntity, anim.ticksRunning);
         }
     }
 
     /**
-     * Met à jour l'item affiché par une Display entity
+     * Summon une nouvelle ItemDisplay entity
+     * Méthode simplifiée qui laisse Minecraft gérer la synchronisation
      */
-    private static void updateDisplayItem(Display.ItemDisplay display, ItemStack item, ServerLevel level) {
-        // Sauvegarder l'état actuel
+    private static Display.ItemDisplay summonItemDisplay(ServerLevel level, BlockPos cratePos, ItemStack item) {
+        // Créer le NBT complet pour l'entité
         CompoundTag nbt = new CompoundTag();
-        display.saveWithoutId(nbt);
 
-        // Mettre à jour l'item dans le NBT
+        // Position au-dessus du coffre
+        nbt.putDouble("x", cratePos.getX() + 0.5);
+        nbt.putDouble("y", cratePos.getY() + 1.3);
+        nbt.putDouble("z", cratePos.getZ() + 0.5);
+
+        // Item à afficher
         CompoundTag itemTag = new CompoundTag();
         item.save(level.registryAccess(), itemTag);
         nbt.put("item", itemTag);
 
-        // Garder item_display en "fixed"
+        // Mode d'affichage: "fixed"
         nbt.putString("item_display", "fixed");
 
-        // Recharger les données
+        // Créer et charger l'entité
+        Display.ItemDisplay display = new Display.ItemDisplay(EntityType.ITEM_DISPLAY, level);
         display.load(nbt);
-    }
 
-    /**
-     * Applique une rotation à la display entity
-     */
-    private static void rotateDisplay(Display.ItemDisplay display, int ticks) {
-        // Rotation autour de l'axe Y (yaw)
-        float yaw = (ticks * 3) % 360; // 3 degrés par tick
-        display.setYRot(yaw);
+        // Ajouter au monde → Minecraft synchronise automatiquement !
+        if (!level.addFreshEntity(display)) {
+            System.err.println("[WeaponCrateAnimation] Impossible de summon la display entity");
+            return null;
+        }
+
+        return display;
     }
 
     /**
@@ -251,8 +197,8 @@ public class WeaponCrateAnimationManager {
      */
     public static void stopAnimation(BlockPos pos) {
         CrateAnimation anim = activeAnimations.remove(pos);
-        if (anim != null && anim.displayEntity != null && anim.displayEntity.isAlive()) {
-            anim.displayEntity.remove(Display.ItemDisplay.RemovalReason.DISCARDED);
+        if (anim != null && anim.currentDisplay != null && anim.currentDisplay.isAlive()) {
+            anim.currentDisplay.kill();
             System.out.println("[WeaponCrateAnimation] Animation arrêtée à " + pos);
         }
     }
@@ -262,8 +208,8 @@ public class WeaponCrateAnimationManager {
      */
     public static void stopAllAnimations() {
         for (CrateAnimation anim : activeAnimations.values()) {
-            if (anim.displayEntity != null && anim.displayEntity.isAlive()) {
-                anim.displayEntity.remove(Display.ItemDisplay.RemovalReason.DISCARDED);
+            if (anim.currentDisplay != null && anim.currentDisplay.isAlive()) {
+                anim.currentDisplay.kill();
             }
         }
         activeAnimations.clear();
