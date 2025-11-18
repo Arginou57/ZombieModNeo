@@ -11,6 +11,7 @@ import com.zombiemod.client.ZombieHUD;
 import com.zombiemod.manager.GameManager;
 import com.zombiemod.map.MapManager;
 import com.zombiemod.network.NetworkHandler;
+import com.zombiemod.system.ServerJukeboxTracker;
 import net.minecraft.server.level.ServerLevel;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
@@ -28,6 +29,9 @@ public class ZombieMod {
     public static final String MODID = "zombiemod";
 
     public ZombieMod(IEventBus modEventBus) {
+        // Register sounds
+        ModSounds.register(modEventBus);
+
         // Register event handlers
         NeoForge.EVENT_BUS.register(this);
         NeoForge.EVENT_BUS.register(ZombieEventHandler.class);
@@ -35,6 +39,7 @@ public class ZombieMod {
         NeoForge.EVENT_BUS.register(PlayerDeathHandler.class);
         NeoForge.EVENT_BUS.register(ZombieDropHandler.class);
         NeoForge.EVENT_BUS.register(PlayerConnectionHandler.class);
+        NeoForge.EVENT_BUS.register(JukeboxInteractionHandler.class);
 
         // Register network packets
         modEventBus.addListener(this::onRegisterPackets);
@@ -65,6 +70,9 @@ public class ZombieMod {
 
         // Initialiser le gestionnaire de maps
         MapManager.init(event.getServer().getServerDirectory().resolve("config").toFile());
+
+        // Initialiser le tracker de jukeboxes
+        ServerJukeboxTracker.initialize(event.getServer().overworld());
     }
 
     @SubscribeEvent
@@ -73,6 +81,7 @@ public class ZombieMod {
         SpawnCommand.register(event.getDispatcher());
         RespawnCommand.register(event.getDispatcher());
         WeaponCrateCommand.register(event.getDispatcher());
+        ZombieJukeboxCommand.register(event.getDispatcher());
         ZombieMapCommand.register(event.getDispatcher());
         ZombieHelpCommand.register(event.getDispatcher());
     }

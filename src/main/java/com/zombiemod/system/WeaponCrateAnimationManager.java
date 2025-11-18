@@ -1,5 +1,6 @@
 package com.zombiemod.system;
 
+import com.zombiemod.ModSounds;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -99,9 +100,9 @@ public class WeaponCrateAnimationManager {
             possibleItems, wonItem, true);
         activeAnimations.put(cratePos, animation);
 
-        // Son de démarrage
-        level.playSound(null, cratePos, SoundEvents.NOTE_BLOCK_PLING.value(),
-            SoundSource.BLOCKS, 1.0f, 1.0f);
+        // Son de démarrage - Mystery Box
+        level.playSound(null, cratePos, ModSounds.MYSTERY_BOX.get(),
+            SoundSource.AMBIENT, 1.0f, 1.0f);
 
         System.out.println("[WeaponCrateAnimation] Animation roulette démarrée à " + cratePos
             + " avec " + possibleItems.size() + " items pour joueur " + player.getName().getString());
@@ -199,63 +200,61 @@ public class WeaponCrateAnimationManager {
     }
 
     /**
-     * Crée une nouvelle ItemDisplay entity directement (sans commande)
-     * Plus fiable que l'approche par commande summon
+     * Summon une nouvelle ItemDisplay entity en utilisant une commande
+     * C'est la méthode la plus fiable pour garantir la synchronisation client-serveur
      */
     private static Display.ItemDisplay summonItemDisplay(ServerLevel level, BlockPos cratePos, ItemStack item) {
-        // Obtenir la direction du coffre
-        BlockState chestState = level.getBlockState(cratePos);
-        Direction facing = chestState.hasProperty(BlockStateProperties.HORIZONTAL_FACING)
-            ? chestState.getValue(BlockStateProperties.HORIZONTAL_FACING)
-            : Direction.NORTH;
-
-        // Position de base au-dessus du coffre
+        // Position au-dessus du coffre
         double x = cratePos.getX() + 0.5;
         double y = cratePos.getY() + 1.3;
         double z = cratePos.getZ() + 0.5;
 
-        // Ajuster la position selon la direction du coffre (légèrement devant)
-        double offsetDistance = 0.2; // Distance devant le coffre
-        x += facing.getStepX() * offsetDistance;
-        z += facing.getStepZ() * offsetDistance;
-
-        // Calculer la rotation (yaw) selon la direction
-        // Rotation de 90° par rapport à la direction du coffre
-        float yaw = switch (facing) {
-            case NORTH -> 270f;  // 180 + 90
-            case SOUTH -> 90f;   // 0 + 90
-            case EAST -> 0f;     // 270 + 90 = 360 = 0
-            case WEST -> 180f;   // 90 + 90
-            default -> 0f;
-        };
-
         try {
-            // Créer l'entité Display.ItemDisplay directement
-            Display.ItemDisplay display = new Display.ItemDisplay(EntityType.ITEM_DISPLAY, level);
+            // Sauvegarder l'ItemStack complet en NBT
+            CompoundTag itemNBT = (CompoundTag) item.save(level.registryAccess());
 
-            // Définir la position
-            display.moveTo(x, y, z, yaw, 0f);
+            // Convertir le NBT en SNBT (String NBT) pour la commande
+            String itemSnbt = itemNBT.getAsString();
 
-            // Ajouter l'entité au monde
-            if (level.addFreshEntity(display)) {
-                // Définir l'item APRÈS avoir ajouté au monde
-                try {
-                    display.getSlot(0).set(item.copy());
-                    System.out.println("[WeaponCrateAnimation] Display entity créée avec succès: " + display.getId());
-                    return display;
-                } catch (Exception slotError) {
-                    System.err.println("[WeaponCrateAnimation] Erreur getSlot: " + slotError.getMessage());
-                    // Si getSlot échoue, tuer l'entité et retourner null
-                    display.kill();
-                    return null;
-                }
+            // Construire la commande summon avec rotation de 90° sur Y
+            // Transformation complète avec tous les champs obligatoires
+            String command = String.format(
+                "summon minecraft:item_display %.2f %.2f %.2f {item:%s,transformation:{left_rotation:[0f,0.7071068f,0f,0.7071068f],right_rotation:[0f,0f,0f,1f],translation:[0f,0f,0f],scale:[1f,1f,1f]}}",
+                x, y, z, itemSnbt
+            );
+
+            System.out.println("[WeaponCrateAnimation] Commande summon: " + command);
+
+            // Exécuter la commande côté serveur
+            net.minecraft.commands.Commands commands = level.getServer().getCommands();
+            net.minecraft.commands.CommandSourceStack source = level.getServer().createCommandSourceStack()
+                .withLevel(level)
+                .withPosition(new Vec3(x, y, z))
+                .withSuppressedOutput();
+
+            commands.performPrefixedCommand(source, command);
+
+            // Trouver l'entité qui vient d'être créée (chercher dans un petit rayon)
+            java.util.List<Display.ItemDisplay> nearbyDisplays = level.getEntitiesOfClass(
+                Display.ItemDisplay.class,
+                new net.minecraft.world.phys.AABB(
+                    x - 0.5, y - 0.5, z - 0.5,
+                    x + 0.5, y + 0.5, z + 0.5
+                )
+            );
+
+            // Retourner l'entité la plus récente (la dernière créée)
+            if (!nearbyDisplays.isEmpty()) {
+                Display.ItemDisplay display = nearbyDisplays.get(nearbyDisplays.size() - 1);
+                System.out.println("[WeaponCrateAnimation] Display entity créée avec succès: " + display.getId());
+                return display;
             } else {
-                System.err.println("[WeaponCrateAnimation] Échec de l'ajout de l'entité au monde");
+                System.err.println("[WeaponCrateAnimation] Aucune entity Display trouvée après summon");
                 return null;
             }
 
         } catch (Exception e) {
-            System.err.println("[WeaponCrateAnimation] Erreur lors de la création du Display: " + e.getMessage());
+            System.err.println("[WeaponCrateAnimation] Erreur lors du summon: " + e.getMessage());
             e.printStackTrace();
             return null;
         }

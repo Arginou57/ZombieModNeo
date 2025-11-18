@@ -10,6 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.ChestBlock;
+import net.minecraft.world.level.block.JukeboxBlock;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -43,9 +44,10 @@ public class ZombieHUD {
             graphics.drawString(font, joinText, x2, 70, 0xFFFFFF);
         }
 
-        // IMPORTANT: Afficher l'info des weapon crates AVANT de vérifier si le joueur est dans la partie
+        // IMPORTANT: Afficher l'info des weapon crates et jukeboxes AVANT de vérifier si le joueur est dans la partie
         // (permet aux admins de voir le prix même hors partie)
         renderWeaponCrateInfo(graphics, font, mc, player);
+        renderJukeboxInfo(graphics, font, mc, player);
 
         // Si le joueur n'est pas dans la partie, ne rien afficher d'autre
         if (!ClientGameData.isLocalPlayerActive() && !ClientGameData.isLocalPlayerWaiting()) {
@@ -184,12 +186,107 @@ public class ZombieHUD {
         int cost = ClientWeaponCrateData.getCost(lookingAt);
         System.out.println("[ZombieHUD] Coût: " + cost);
 
+        // Récupérer les munitions
+        net.minecraft.nbt.ListTag ammo = ClientWeaponCrateData.getAmmo(lookingAt);
+        System.out.println("[ZombieHUD] Munitions: " + ammo.size());
+
         // Position au-dessus de la hotbar (centré)
         int screenWidth = graphics.guiWidth();
         int screenHeight = graphics.guiHeight();
 
-        // Position Y : au-dessus de la hotbar (hotbar est à screenHeight - 40 environ)
-        int baseY = screenHeight - 70;
+        // Position Y : bien au-dessus de la hotbar et de la barre d'expérience
+        // (hotbar est à screenHeight - 40, barre d'expérience à screenHeight - 32)
+        int baseY = screenHeight - 110;
+
+        // TOUJOURS afficher la section arme en premier
+        String weaponLine = "§6§lArme §7- §ePrix: §6" + cost + " points";
+        int weaponLineWidth = font.width(weaponLine);
+        int weaponLineX = (screenWidth - weaponLineWidth) / 2;
+        graphics.drawString(font, weaponLine, weaponLineX, baseY, 0xFFFFFF);
+        baseY += 10;
+
+        String weaponAction = "§7Clique §edroit";
+        int weaponActionWidth = font.width(weaponAction);
+        int weaponActionX = (screenWidth - weaponActionWidth) / 2;
+        graphics.drawString(font, weaponAction, weaponActionX, baseY, 0xFFFFFF);
+        baseY += 15; // Espace entre les sections
+
+        // Si des munitions sont disponibles, afficher la section munitions
+        if (!ammo.isEmpty()) {
+            // Calculer quantité totale et prix total
+            int totalQuantity = 0;
+            int totalCost = 0;
+            for (int i = 0; i < ammo.size(); i++) {
+                net.minecraft.nbt.CompoundTag ammoTag = ammo.getCompound(i);
+                int count = ammoTag.getInt("Count");
+                int prix = ammoTag.getInt("Prix");
+                totalQuantity += count;
+                totalCost += prix;
+            }
+
+            String ammoLine = "§6§lMunitions §fx" + totalQuantity + " §7- §ePrix: §6" + totalCost + " points";
+            int ammoLineWidth = font.width(ammoLine);
+            int ammoLineX = (screenWidth - ammoLineWidth) / 2;
+            graphics.drawString(font, ammoLine, ammoLineX, baseY, 0xFFFFFF);
+            baseY += 10;
+
+            String ammoAction = "§7Clique §agauche";
+            int ammoActionWidth = font.width(ammoAction);
+            int ammoActionX = (screenWidth - ammoActionWidth) / 2;
+            graphics.drawString(font, ammoAction, ammoActionX, baseY, 0xFFFFFF);
+        }
+    }
+
+    private static void renderJukeboxInfo(GuiGraphics graphics, Font font, Minecraft mc, Player player) {
+        // Raycasting pour détecter le bloc regardé
+        Vec3 eyePos = player.getEyePosition(1.0f);
+        Vec3 lookVec = player.getViewVector(1.0f);
+        Vec3 endPos = eyePos.add(lookVec.scale(5.0)); // Distance de 5 blocs
+
+        ClipContext context = new ClipContext(
+            eyePos,
+            endPos,
+            ClipContext.Block.OUTLINE,
+            ClipContext.Fluid.NONE,
+            player
+        );
+
+        BlockHitResult hitResult = player.level().clip(context);
+
+        // Vérifier si on regarde un bloc
+        if (hitResult.getType() != HitResult.Type.BLOCK) {
+            return;
+        }
+
+        BlockPos lookingAt = hitResult.getBlockPos();
+
+        // Vérifier si c'est un jukebox
+        if (!(player.level().getBlockState(lookingAt).getBlock() instanceof JukeboxBlock)) {
+            return;
+        }
+
+        // DEBUG: Log quand on regarde un jukebox
+        System.out.println("[ZombieHUD] Regardant jukebox à: " + lookingAt);
+
+        // Vérifier si c'est un jukebox zombie (utiliser le cache client)
+        boolean isZombieJukebox = ClientJukeboxData.isJukebox(lookingAt);
+        System.out.println("[ZombieHUD] isZombieJukebox: " + isZombieJukebox);
+
+        if (!isZombieJukebox) {
+            return;
+        }
+
+        // Récupérer le coût (depuis le cache client)
+        int cost = ClientJukeboxData.getCost(lookingAt);
+        System.out.println("[ZombieHUD] Coût: " + cost);
+
+        // Position au-dessus de la hotbar (centré)
+        int screenWidth = graphics.guiWidth();
+        int screenHeight = graphics.guiHeight();
+
+        // Position Y : bien au-dessus de la hotbar et de la barre d'expérience
+        // (hotbar est à screenHeight - 40, barre d'expérience à screenHeight - 32)
+        int baseY = screenHeight - 90;
 
         // Afficher le prix
         String priceText = "§6§l" + cost + " Points";
@@ -197,8 +294,8 @@ public class ZombieHUD {
         int priceX = (screenWidth - priceWidth) / 2;
         graphics.drawString(font, priceText, priceX, baseY, 0xFFFFFF);
 
-        // Afficher "Ouvrir caisse" en dessous
-        String actionText = "§eOuvrir Caisse";
+        // Afficher "♪ Activer Musique" en dessous
+        String actionText = "§e♪ Activer Musique";
         int actionWidth = font.width(actionText);
         int actionX = (screenWidth - actionWidth) / 2;
         graphics.drawString(font, actionText, actionX, baseY + 12, 0xFFFFFF);

@@ -101,6 +101,7 @@ public class WeaponCrateManager {
             data.putBoolean("IsWeaponCrate", true);
             data.putInt("Cost", cost);
             data.put("Weapons", new ListTag());
+            data.put("Ammo", new ListTag()); // Liste des munitions
             chest.setChanged();
 
             // Synchroniser avec les clients
@@ -195,6 +196,60 @@ public class WeaponCrateManager {
                 updateDisplayAfterWeaponChange(serverLevel, pos, weaponCountBefore, weaponCountAfter);
             }
         }
+    }
+
+    // Nouvelle méthode pour ajouter des munitions avec prix (pas de Display entity)
+    public static void addAmmo(Level level, BlockPos pos, ItemStack itemStack, int prix) {
+        BlockEntity be = level.getBlockEntity(pos);
+        if (be instanceof ChestBlockEntity chest) {
+            CompoundTag data = chest.getPersistentData();
+            ListTag ammo = data.getList("Ammo", Tag.TAG_COMPOUND);
+
+            System.out.println("[WeaponCrate] addAmmo à " + pos + " - Munitions AVANT: " + ammo.size());
+
+            CompoundTag ammoTag = new CompoundTag();
+            ammoTag.putInt("Prix", prix);
+
+            // Sauvegarder l'ItemStack complet avec tous ses DataComponents
+            String itemId = level.registryAccess().registryOrThrow(Registries.ITEM)
+                    .getKey(itemStack.getItem()).toString();
+            ammoTag.putString("Item", itemId);
+            ammoTag.putInt("Count", itemStack.getCount());
+
+            // Sauvegarder l'ItemStack complet
+            CompoundTag itemData = (CompoundTag) itemStack.save(level.registryAccess());
+            ammoTag.put("ItemStackData", itemData);
+
+            // Récupérer le nom pour affichage
+            String displayName;
+            if (itemStack.has(DataComponents.CUSTOM_NAME)) {
+                displayName = itemStack.get(DataComponents.CUSTOM_NAME).getString();
+            } else {
+                displayName = itemStack.getDescriptionId();
+            }
+            ammoTag.putString("Name", displayName);
+
+            ammo.add(ammoTag);
+            data.put("Ammo", ammo);
+            chest.setChanged();
+
+            System.out.println("[WeaponCrate] addAmmo à " + pos + " - Munitions APRÈS: " + ammo.size());
+
+            // Synchroniser avec les clients
+            if (!level.isClientSide()) {
+                ServerWeaponCrateTracker.syncToAllPlayers();
+            }
+        }
+    }
+
+    // Récupérer la liste des munitions pour l'UI
+    public static ListTag getAmmo(Level level, BlockPos pos) {
+        BlockEntity be = level.getBlockEntity(pos);
+        if (be instanceof ChestBlockEntity chest) {
+            CompoundTag data = chest.getPersistentData();
+            return data.getList("Ammo", Tag.TAG_COMPOUND);
+        }
+        return new ListTag();
     }
 
     public static WeaponConfig getRandomWeapon(Level level, BlockPos pos, RandomSource random) {

@@ -3,6 +3,7 @@ package com.zombiemod.system;
 import com.zombiemod.network.NetworkHandler;
 import com.zombiemod.network.packet.WeaponCrateSyncPacket;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.server.level.ServerLevel;
 
 import java.util.HashMap;
@@ -126,9 +127,31 @@ public class ServerWeaponCrateTracker {
         return new HashMap<>(weaponCrates);
     }
 
+    private static Map<BlockPos, WeaponCrateSyncPacket.CrateData> buildCrateDataMap() {
+        if (currentLevel == null) {
+            System.err.println("[ServerWeaponCrateTracker] ERREUR: currentLevel est null, impossible de construire les données");
+            return new HashMap<>();
+        }
+
+        // Créer la map avec toutes les données (coût + munitions)
+        Map<BlockPos, WeaponCrateSyncPacket.CrateData> crateDataMap = new HashMap<>();
+        for (Map.Entry<BlockPos, Integer> entry : weaponCrates.entrySet()) {
+            BlockPos pos = entry.getKey();
+            int cost = entry.getValue();
+            ListTag ammo = WeaponCrateManager.getAmmo(currentLevel, pos);
+            crateDataMap.put(pos, new WeaponCrateSyncPacket.CrateData(cost, ammo));
+        }
+        return crateDataMap;
+    }
+
     public static void syncToAllPlayers() {
         System.out.println("[ServerWeaponCrateTracker] Synchronisation de " + weaponCrates.size() + " caisses avec tous les joueurs");
-        NetworkHandler.sendToAllPlayers(new WeaponCrateSyncPacket(getAllCrates()));
+        NetworkHandler.sendToAllPlayers(new WeaponCrateSyncPacket(buildCrateDataMap()));
+    }
+
+    public static void syncToPlayer(net.minecraft.server.level.ServerPlayer player) {
+        System.out.println("[ServerWeaponCrateTracker] Synchronisation de " + weaponCrates.size() + " caisses avec " + player.getName().getString());
+        NetworkHandler.sendToPlayer(player, new WeaponCrateSyncPacket(buildCrateDataMap()));
     }
 
     public static void reset() {

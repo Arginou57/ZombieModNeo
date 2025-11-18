@@ -13,8 +13,7 @@ public class PlayerConnectionHandler {
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             // Envoyer la liste des weapon crates au joueur qui vient de se connecter
-            NetworkHandler.sendToPlayer(player,
-                new WeaponCrateSyncPacket(ServerWeaponCrateTracker.getAllCrates()));
+            ServerWeaponCrateTracker.syncToPlayer(player);
         }
     }
 }

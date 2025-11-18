@@ -1,0 +1,38 @@
+{
+  "mystery_box": {
+    "sounds": [
+      {
+        "name": "zombiemod:mystery_box",
+        "stream": true
+      }
+    ],
+    "subtitle": "Mystery Box Opening"
+  },
+  "round_start": {
+    "sounds": [
+      {
+        "name": "zombiemod:round_start",
+        "stream": true
+      }
+    ],
+    "subtitle": "Round Start"
+  },
+  "round_end": {
+    "sounds": [
+      {
+        "name": "zombiemod:round_end",
+        "stream": true
+      }
+    ],
+    "subtitle": "Round End"
+  },
+  "115": {
+    "sounds": [
+      {
+        "name": "zombiemod:115",
+        "stream": true
+      }
+    ],
+    "subtitle": "115 - Kino der Toten"
+  }
+}

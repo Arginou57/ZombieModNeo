@@ -2,6 +2,7 @@ package com.zombiemod.network;
 
 import com.zombiemod.ZombieMod;
 import com.zombiemod.network.packet.GameSyncPacket;
+import com.zombiemod.network.packet.JukeboxSyncPacket;
 import com.zombiemod.network.packet.PointsAnimationPacket;
 import com.zombiemod.network.packet.WeaponCrateSyncPacket;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -32,6 +33,12 @@ public class NetworkHandler {
                 WeaponCrateSyncPacket.TYPE,
                 WeaponCrateSyncPacket.STREAM_CODEC,
                 WeaponCrateSyncPacket::handle
+        );
+
+        registrar.playToClient(
+                JukeboxSyncPacket.TYPE,
+                JukeboxSyncPacket.STREAM_CODEC,
+                JukeboxSyncPacket::handle
         );
     }
 

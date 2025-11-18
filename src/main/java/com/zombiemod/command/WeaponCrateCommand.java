@@ -87,6 +87,14 @@ public class WeaponCrateCommand {
                 .then(Commands.literal("preset")
                         .then(Commands.literal("legendary")
                                 .executes(WeaponCrateCommand::createLegendaryPreset))));
+
+        // /weaponcrate addammo hand <prix>
+        dispatcher.register(Commands.literal("weaponcrate")
+                .requires(source -> source.hasPermission(2))
+                .then(Commands.literal("addammo")
+                        .then(Commands.literal("hand")
+                                .then(Commands.argument("prix", IntegerArgumentType.integer(0))
+                                        .executes(WeaponCrateCommand::addAmmoFromHand)))));
     }
 
     private static int createCrate(CommandContext<CommandSourceStack> context) {
@@ -351,6 +359,51 @@ public class WeaponCrateCommand {
 
         WeaponCrateManager.createLegendaryCrate(player.level(), chestPos);
         player.sendSystemMessage(Component.literal("§aCaisse §4§lLEGENDARY §acréée (5000 points) !"));
+
+        return 1;
+    }
+
+    // /weaponcrate addammo hand <prix>
+    private static int addAmmoFromHand(CommandContext<CommandSourceStack> context) {
+        if (!(context.getSource().getEntity() instanceof ServerPlayer player)) {
+            return 0;
+        }
+
+        int prix = IntegerArgumentType.getInteger(context, "prix");
+
+        // Vérifier le coffre
+        BlockPos chestPos = getTargetedChest(player);
+        if (chestPos == null) {
+            player.sendSystemMessage(Component.literal("§cVous devez regarder un coffre !"));
+            return 0;
+        }
+
+        if (!WeaponCrateManager.isWeaponCrate(player.level(), chestPos)) {
+            player.sendSystemMessage(Component.literal("§cCe coffre n'est pas une caisse d'armes ! Utilisez §e/weaponcrate create <cost>"));
+            return 0;
+        }
+
+        // Récupérer l'item en main
+        ItemStack heldItem = player.getMainHandItem();
+        if (heldItem.isEmpty()) {
+            player.sendSystemMessage(Component.literal("§cVous devez tenir un item dans votre main !"));
+            return 0;
+        }
+
+        // Ajouter les munitions
+        WeaponCrateManager.addAmmo(player.level(), chestPos, heldItem, prix);
+
+        // Récupérer le nom de l'item pour l'affichage
+        String displayName;
+        if (heldItem.has(DataComponents.CUSTOM_NAME)) {
+            displayName = heldItem.get(DataComponents.CUSTOM_NAME).getString();
+        } else {
+            String itemId = BuiltInRegistries.ITEM.getKey(heldItem.getItem()).toString();
+            displayName = generateDefaultName(itemId);
+        }
+
+        player.sendSystemMessage(Component.literal("§aMunitions ajoutées: §e" + displayName + " §7(x" + heldItem.getCount() + ", prix: " + prix + ")"));
+        player.sendSystemMessage(Component.literal("§7Tous les tags et DataComponents ont été préservés."));
 
         return 1;
     }

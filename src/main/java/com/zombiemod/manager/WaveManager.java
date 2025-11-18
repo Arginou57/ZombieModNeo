@@ -1,5 +1,6 @@
 package com.zombiemod.manager;
 
+import com.zombiemod.ModSounds;
 import com.zombiemod.config.ZombieConfig;
 import com.zombiemod.config.ZombieMobsConfig;
 import com.zombiemod.map.MapManager;
@@ -79,7 +80,8 @@ public class WaveManager {
             return;
         }
 
-        level.playSound(null, BlockPos.ZERO, SoundEvents.ENDER_DRAGON_GROWL, SoundSource.MASTER, 0.5f, 1.0f);
+        // Son de début de round
+        GameManager.playGlobalSound(level, ModSounds.ROUND_START.get(), 1.0f);
     }
 
     private static void spawnMob(ServerLevel level, BlockPos pos, boolean glowing) {
@@ -261,6 +263,9 @@ public class WaveManager {
         waveCountdownTicks = 200;
         GameManager.broadcastToAll(level, "§a§lVague " + currentWave + " terminée !");
         GameManager.broadcastToAll(level, "§eProchaine vague dans §610 secondes§e...");
+
+        // Son de fin de round
+        GameManager.playGlobalSound(level, ModSounds.ROUND_END.get(), 1.0f);
     }
 
     public static void tick(ServerLevel level) {
