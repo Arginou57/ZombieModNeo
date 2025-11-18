@@ -155,33 +155,41 @@ public class WeaponCrateAnimationManager {
                 anim.changeDelay = 8; // Lent : 0.4s (2.5 fps)
             }
 
-            // Changer l'item affiché ?
+            // Au tick 56, FORCER l'affichage de l'item gagné (peu importe le délai)
+            if (anim.ticksRunning == 56) {
+                anim.ticksSinceLastChange = 0;
+
+                // KILL l'ancienne entity et SUMMON l'item GAGNÉ
+                if (anim.currentDisplay != null && anim.currentDisplay.isAlive()) {
+                    anim.currentDisplay.kill();
+                }
+                anim.currentDisplay = summonItemDisplay(level, anim.pos, anim.wonItem);
+
+                // Son de victoire
+                level.playSound(null, anim.pos, SoundEvents.PLAYER_LEVELUP,
+                    SoundSource.BLOCKS, 1.0f, 1.0f);
+
+                System.out.println("[WeaponCrateAnimation] Tick 56 - Affichage de l'item gagné: "
+                    + anim.wonItem.getDisplayName().getString());
+                continue;
+            }
+
+            // Changer l'item affiché selon le délai (seulement AVANT tick 56)
             if (anim.ticksSinceLastChange >= anim.changeDelay) {
                 anim.ticksSinceLastChange = 0;
 
-                // Déterminer l'item à afficher
-                ItemStack nextItem;
-                if (anim.ticksRunning >= 56) {
-                    // Afficher l'item gagné à partir du tick 56
-                    nextItem = anim.wonItem;
-                    // Son de victoire au premier tick
-                    if (anim.ticksRunning == 56) {
-                        level.playSound(null, anim.pos, SoundEvents.PLAYER_LEVELUP,
-                            SoundSource.BLOCKS, 1.0f, 1.0f);
-                    }
-                } else {
-                    // Item aléatoire
-                    nextItem = anim.possibleItems.get(random.nextInt(anim.possibleItems.size()));
-                    // Son de tick
-                    level.playSound(null, anim.pos, SoundEvents.NOTE_BLOCK_HAT.value(),
-                        SoundSource.BLOCKS, 0.5f, 1.0f + (anim.ticksRunning * 0.01f));
-                }
+                // Item aléatoire pendant la roulette
+                ItemStack nextItem = anim.possibleItems.get(random.nextInt(anim.possibleItems.size()));
 
                 // KILL l'ancienne entity et SUMMON une nouvelle
                 if (anim.currentDisplay != null && anim.currentDisplay.isAlive()) {
                     anim.currentDisplay.kill();
                 }
                 anim.currentDisplay = summonItemDisplay(level, anim.pos, nextItem);
+
+                // Son de tick
+                level.playSound(null, anim.pos, SoundEvents.NOTE_BLOCK_HAT.value(),
+                    SoundSource.BLOCKS, 0.5f, 1.0f + (anim.ticksRunning * 0.01f));
             }
         }
     }
