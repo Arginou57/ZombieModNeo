@@ -220,11 +220,12 @@ public class WeaponCrateAnimationManager {
         z += facing.getStepZ() * offsetDistance;
 
         // Calculer la rotation (yaw) selon la direction
+        // Rotation de 90° par rapport à la direction du coffre
         float yaw = switch (facing) {
-            case NORTH -> 180f;
-            case SOUTH -> 0f;
-            case EAST -> 270f;
-            case WEST -> 90f;
+            case NORTH -> 270f;  // 180 + 90
+            case SOUTH -> 90f;   // 0 + 90
+            case EAST -> 0f;     // 270 + 90 = 360 = 0
+            case WEST -> 180f;   // 90 + 90
             default -> 0f;
         };
 
