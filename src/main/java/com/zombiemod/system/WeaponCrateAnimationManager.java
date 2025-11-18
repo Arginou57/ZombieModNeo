@@ -196,8 +196,7 @@ public class WeaponCrateAnimationManager {
 
     /**
      * Summon une nouvelle ItemDisplay entity en utilisant une commande
-     * C'est la méthode la plus fiable pour garantir la synchronisation client-serveur
-     * Inclut TOUS les NBT/components de l'ItemStack (pour items moddés)
+     * Utilise le format SNBT correct pour Minecraft 1.21+
      */
     private static Display.ItemDisplay summonItemDisplay(ServerLevel level, BlockPos cratePos, ItemStack item) {
         // Position au-dessus du coffre
@@ -205,18 +204,21 @@ public class WeaponCrateAnimationManager {
         double y = cratePos.getY() + 1.3;
         double z = cratePos.getZ() + 0.5;
 
-        // Sauvegarder l'item en NBT complet (avec tous les components)
+        // Sauvegarder l'item en NBT complet
         CompoundTag itemNbt = new CompoundTag();
         item.save(level.registryAccess(), itemNbt);
 
-        // Convertir le NBT en format SNBT (Stringified NBT) pour la commande
-        String itemSnbt = itemNbt.toString();
+        // Convertir en SNBT (Stringified NBT) compatible avec les commandes
+        // Utiliser net.minecraft.nbt.NbtUtils pour le formatage correct
+        String itemSnbt = net.minecraft.nbt.NbtUtils.structureToSnbt(itemNbt);
 
-        // Construire la commande summon avec le NBT complet de l'item
+        // Construire la commande summon
         String command = String.format(
             "summon minecraft:item_display %.2f %.2f %.2f {item:%s,item_display:\"fixed\"}",
             x, y, z, itemSnbt
         );
+
+        System.out.println("[WeaponCrateAnimation] Commande summon: " + command);
 
         try {
             // Exécuter la commande côté serveur
@@ -226,10 +228,14 @@ public class WeaponCrateAnimationManager {
                 .withPosition(new Vec3(x, y, z))
                 .withSuppressedOutput();
 
-            commands.performPrefixedCommand(source, command);
+            int result = commands.performPrefixedCommand(source, command);
 
+            if (result == 0) {
+                System.err.println("[WeaponCrateAnimation] La commande a échoué (result=0)");
+            }
+
+            // Attendre un tick pour que l'entité soit créée
             // Trouver l'entité qui vient d'être créée
-            // Chercher la Display.ItemDisplay la plus proche de la position
             java.util.List<Display.ItemDisplay> nearbyDisplays = level.getEntitiesOfClass(
                 Display.ItemDisplay.class,
                 new net.minecraft.world.phys.AABB(
@@ -240,11 +246,10 @@ public class WeaponCrateAnimationManager {
 
             if (!nearbyDisplays.isEmpty()) {
                 Display.ItemDisplay display = nearbyDisplays.get(0);
-                System.out.println("[WeaponCrateAnimation] Display entity summoned avec NBT complet: " + display.getId()
-                    + " pour item " + item.getDisplayName().getString() + " à " + cratePos);
+                System.out.println("[WeaponCrateAnimation] Display entity trouvée: " + display.getId());
                 return display;
             } else {
-                System.err.println("[WeaponCrateAnimation] Entity summon réussie mais introuvable");
+                System.err.println("[WeaponCrateAnimation] Aucune Display entity trouvée après summon");
                 return null;
             }
 
