@@ -40,7 +40,7 @@ public class WeaponCrateEventHandler {
                     ServerWeaponCrateTracker.removeWeaponCrate(pos);
 
                     // Supprimer l'animation/affichage statique
-                    WeaponCrateAnimationManager.stopAnimation(pos);
+                    WeaponCrateAnimationManager.stopAnimation((ServerLevel) level, pos);
                     System.out.println("[WeaponCrateEventHandler] Animation supprimée pour " + pos);
                 }
             }

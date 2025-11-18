@@ -235,14 +235,19 @@ public class WeaponCrateAnimationManager {
             // Définir la position
             display.moveTo(x, y, z, yaw, 0f);
 
-            // Définir l'item à afficher via getSlot (slot 0 = item slot)
-            net.minecraft.world.inventory.SlotAccess slotAccess = display.getSlot(0);
-            slotAccess.set(item.copy());
-
             // Ajouter l'entité au monde
             if (level.addFreshEntity(display)) {
-                System.out.println("[WeaponCrateAnimation] Display entity créée avec succès: " + display.getId());
-                return display;
+                // Définir l'item APRÈS avoir ajouté au monde
+                try {
+                    display.getSlot(0).set(item.copy());
+                    System.out.println("[WeaponCrateAnimation] Display entity créée avec succès: " + display.getId());
+                    return display;
+                } catch (Exception slotError) {
+                    System.err.println("[WeaponCrateAnimation] Erreur getSlot: " + slotError.getMessage());
+                    // Si getSlot échoue, tuer l'entité et retourner null
+                    display.kill();
+                    return null;
+                }
             } else {
                 System.err.println("[WeaponCrateAnimation] Échec de l'ajout de l'entité au monde");
                 return null;
@@ -263,6 +268,53 @@ public class WeaponCrateAnimationManager {
         if (anim != null && anim.currentDisplay != null && anim.currentDisplay.isAlive()) {
             anim.currentDisplay.kill();
             System.out.println("[WeaponCrateAnimation] Animation arrêtée à " + pos);
+        }
+
+        // IMPORTANT: Tuer TOUS les Display.ItemDisplay dans un rayon de 2 blocs
+        // Cela garantit que les affichages statiques sont bien supprimés
+        if (anim != null) {
+            killAllDisplaysNearby(anim.level, pos, 2.0);
+        }
+    }
+
+    /**
+     * Arrête une animation à une position donnée (avec level fourni)
+     * Tue également TOUS les Display.ItemDisplay dans un rayon de 2 blocs autour du coffre
+     */
+    public static void stopAnimation(ServerLevel level, BlockPos pos) {
+        CrateAnimation anim = activeAnimations.remove(pos);
+        if (anim != null && anim.currentDisplay != null && anim.currentDisplay.isAlive()) {
+            anim.currentDisplay.kill();
+            System.out.println("[WeaponCrateAnimation] Animation arrêtée à " + pos);
+        }
+
+        // IMPORTANT: Tuer TOUS les Display.ItemDisplay dans un rayon de 2 blocs
+        // Cela garantit que les affichages statiques sont bien supprimés
+        killAllDisplaysNearby(level, pos, 2.0);
+    }
+
+    /**
+     * Tue tous les Display.ItemDisplay dans un rayon donné autour d'une position
+     */
+    private static void killAllDisplaysNearby(ServerLevel level, BlockPos center, double radius) {
+        double x = center.getX() + 0.5;
+        double y = center.getY() + 0.5;
+        double z = center.getZ() + 0.5;
+
+        java.util.List<Display.ItemDisplay> nearbyDisplays = level.getEntitiesOfClass(
+            Display.ItemDisplay.class,
+            new net.minecraft.world.phys.AABB(
+                x - radius, y - radius, z - radius,
+                x + radius, y + radius, z + radius
+            )
+        );
+
+        for (Display.ItemDisplay display : nearbyDisplays) {
+            display.kill();
+        }
+
+        if (!nearbyDisplays.isEmpty()) {
+            System.out.println("[WeaponCrateAnimation] " + nearbyDisplays.size() + " Display entities supprimées autour de " + center);
         }
     }
 

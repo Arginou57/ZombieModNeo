@@ -393,7 +393,7 @@ public class WeaponCrateManager {
         // Passage de 1 à 2 armes : supprimer affichage statique
         else if (countBefore == 1 && countAfter == 2) {
             System.out.println("[WeaponCrate] Détection: 1 -> 2 armes, suppression affichage statique");
-            WeaponCrateAnimationManager.stopAnimation(pos);
+            WeaponCrateAnimationManager.stopAnimation(level, pos);
             System.out.println("[WeaponCrate] Affichage statique supprimé (passage en mode roulette) à " + pos);
         }
         else {
