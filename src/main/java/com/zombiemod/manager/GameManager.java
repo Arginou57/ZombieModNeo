@@ -2,6 +2,7 @@ package com.zombiemod.manager;
 
 import com.zombiemod.network.NetworkHandler;
 import com.zombiemod.network.packet.GameSyncPacket;
+import com.zombiemod.system.ServerWeaponCrateTracker;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -65,6 +66,10 @@ public class GameManager {
 
         currentState = GameState.STARTING;
         startCountdownTicks = 1200; // 60 secondes
+
+        // Recharger les weapon crates depuis la sauvegarde persistante
+        System.out.println("[GameManager] Rechargement des weapon crates...");
+        ServerWeaponCrateTracker.scanAllLoadedChunks(level);
 
         broadcastToAll(level, "§6§l=== PARTIE ZOMBIE ===");
         broadcastToAll(level, "§eLa partie démarre dans §c60 secondes §e!");

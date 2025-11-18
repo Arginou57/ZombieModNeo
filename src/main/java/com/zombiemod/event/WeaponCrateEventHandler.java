@@ -1,6 +1,7 @@
 package com.zombiemod.event;
 
 import com.zombiemod.system.ServerWeaponCrateTracker;
+import com.zombiemod.system.WeaponCrateAnimationManager;
 import com.zombiemod.system.WeaponCrateManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -25,7 +26,7 @@ public class WeaponCrateEventHandler {
 
     /**
      * Quand un bloc est cassé, vérifier si c'est une weapon crate
-     * et la supprimer du tracker
+     * et la supprimer du tracker + arrêter l'animation
      */
     @SubscribeEvent
     public static void onBlockBreak(BlockEvent.BreakEvent event) {
@@ -41,20 +42,28 @@ public class WeaponCrateEventHandler {
                 // Supprimer du tracker côté serveur
                 if (!level.isClientSide()) {
                     ServerWeaponCrateTracker.removeWeaponCrate(pos);
+
+                    // Supprimer l'animation/affichage statique
+                    WeaponCrateAnimationManager.stopAnimation(pos);
+                    System.out.println("[WeaponCrateEventHandler] Animation supprimée pour " + pos);
                 }
             }
         }
     }
 
     /**
-     * Au démarrage du serveur, réinitialiser le tracker
-     * Les weapon crates seront rechargées progressivement via ChunkLoad events
+     * Au démarrage du serveur, charger les weapon crates depuis la sauvegarde persistante
      */
     @SubscribeEvent
     public static void onServerStarted(ServerStartedEvent event) {
-        System.out.println("[WeaponCrateEventHandler] Démarrage du serveur - Réinitialisation du tracker");
-        ServerWeaponCrateTracker.reset();
-        System.out.println("[WeaponCrateEventHandler] Les weapon crates seront rechargées lors du chargement des chunks");
+        System.out.println("[WeaponCrateEventHandler] Démarrage du serveur - Chargement des weapon crates");
+
+        // Récupérer l'overworld (dimension principale)
+        ServerLevel overworld = event.getServer().getLevel(Level.OVERWORLD);
+        if (overworld != null) {
+            ServerWeaponCrateTracker.initialize(overworld);
+            System.out.println("[WeaponCrateEventHandler] Weapon crates chargées depuis la sauvegarde");
+        }
     }
 
     /**
