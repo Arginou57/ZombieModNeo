@@ -69,6 +69,20 @@ public class GameManager {
             return; // Déjà lancée
         }
 
+        // Sélectionner la map si un nom est fourni
+        if (mapName != null && !mapName.isEmpty()) {
+            if (!com.zombiemod.map.MapManager.mapExists(mapName)) {
+                System.err.println("[GameManager] ERREUR: La map '" + mapName + "' n'existe pas !");
+                broadcastToAll(level, "§c§lERREUR: La map '" + mapName + "' n'existe pas !");
+                return;
+            }
+            com.zombiemod.map.MapManager.selectMap(mapName);
+            System.out.println("[GameManager] Map '" + mapName + "' sélectionnée");
+
+            // Synchroniser les portes de la nouvelle map avec tous les clients
+            com.zombiemod.system.ServerDoorTracker.syncToAllPlayers();
+        }
+
         currentState = GameState.STARTING;
         startCountdownTicks = 1200; // 60 secondes
         currentMapName = mapName;

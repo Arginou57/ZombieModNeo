@@ -172,24 +172,17 @@ public class ZombieHUD {
             return;
         }
 
-        // DEBUG: Log quand on regarde un coffre
-        System.out.println("[ZombieHUD] Regardant coffre à: " + lookingAt);
-
         // Vérifier si c'est une weapon crate (utiliser le cache client)
         boolean isWeaponCrate = ClientWeaponCrateData.isWeaponCrate(lookingAt);
-        System.out.println("[ZombieHUD] isWeaponCrate: " + isWeaponCrate);
-
         if (!isWeaponCrate) {
             return;
         }
 
         // Récupérer le coût (depuis le cache client)
         int cost = ClientWeaponCrateData.getCost(lookingAt);
-        System.out.println("[ZombieHUD] Coût: " + cost);
 
         // Récupérer les munitions
         net.minecraft.nbt.ListTag ammo = ClientWeaponCrateData.getAmmo(lookingAt);
-        System.out.println("[ZombieHUD] Munitions: " + ammo.size());
 
         // Position au-dessus de la hotbar (centré)
         int screenWidth = graphics.guiWidth();
@@ -266,20 +259,14 @@ public class ZombieHUD {
             return;
         }
 
-        // DEBUG: Log quand on regarde un jukebox
-        System.out.println("[ZombieHUD] Regardant jukebox à: " + lookingAt);
-
         // Vérifier si c'est un jukebox zombie (utiliser le cache client)
         boolean isZombieJukebox = ClientJukeboxData.isJukebox(lookingAt);
-        System.out.println("[ZombieHUD] isZombieJukebox: " + isZombieJukebox);
-
         if (!isZombieJukebox) {
             return;
         }
 
         // Récupérer le coût (depuis le cache client)
         int cost = ClientJukeboxData.getCost(lookingAt);
-        System.out.println("[ZombieHUD] Coût: " + cost);
 
         // Position au-dessus de la hotbar (centré)
         int screenWidth = graphics.guiWidth();
@@ -330,13 +317,8 @@ public class ZombieHUD {
             return;
         }
 
-        // DEBUG: Log quand on regarde un panneau
-        System.out.println("[ZombieHUD] Regardant panneau à: " + lookingAt);
-
         // Vérifier si c'est une porte (utiliser le cache client)
         boolean isDoor = ClientDoorData.isDoor(lookingAt);
-        System.out.println("[ZombieHUD] isDoor: " + isDoor);
-
         if (!isDoor) {
             return;
         }
@@ -345,7 +327,6 @@ public class ZombieHUD {
         int doorNumber = ClientDoorData.getDoorNumber(lookingAt);
         int cost = ClientDoorData.getCost(lookingAt);
         boolean isOpen = ClientDoorData.isOpen(lookingAt);
-        System.out.println("[ZombieHUD] Porte #" + doorNumber + ", Coût: " + cost + ", Ouverte: " + isOpen);
 
         // Position au-dessus de la hotbar (centré)
         int screenWidth = graphics.guiWidth();

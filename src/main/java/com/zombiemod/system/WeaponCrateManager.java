@@ -44,12 +44,12 @@ public class WeaponCrateManager {
         public ItemStack toItemStack(Level level) {
             // Si on a un ItemStack complet sauvegardé, l'utiliser directement
             if (fullItemStack != null && !fullItemStack.isEmpty()) {
-                System.out.println("[ZombieMod] Utilisation de fullItemStack pour: " + displayName);
+                // System.out.println("[ZombieMod] Utilisation de fullItemStack pour: " + displayName);
                 return fullItemStack.copy();
             }
 
             // Sinon, reconstruire depuis les données séparées (ancien format)
-            System.out.println("[ZombieMod] Reconstruction depuis itemId pour: " + displayName + " (itemId=" + itemId + ")");
+            // System.out.println("[ZombieMod] Reconstruction depuis itemId pour: " + displayName + " (itemId=" + itemId + ")");
 
             if (itemId == null || itemId.isEmpty()) {
                 System.err.println("[ZombieMod] ERREUR: itemId est null ou vide pour " + displayName);

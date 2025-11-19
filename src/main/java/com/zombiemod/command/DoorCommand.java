@@ -112,6 +112,17 @@ public class DoorCommand {
         // Créer la porte
         DoorConfig door = new DoorConfig(doorNumber, signPos, cost);
 
+        // Sauvegarder l'état de la pancarte (direction, texte, etc.)
+        door.setSignBlock(signPos, signState);
+
+        // Sauvegarder le texte de la pancarte (BlockEntity)
+        var blockEntity = level.getBlockEntity(signPos);
+        if (blockEntity != null) {
+            net.minecraft.nbt.CompoundTag nbt = blockEntity.saveWithoutMetadata(level.registryAccess());
+            door.getSignBlock().setBlockEntityData(nbt);
+            System.out.println("[DoorCommand] Texte de la pancarte sauvegardé");
+        }
+
         // Récupérer la direction de la pancarte
         Direction signFacing = signState.getValue(BlockStateProperties.HORIZONTAL_FACING);
         Direction wallDirection = signFacing.getOpposite(); // Le mur est derrière la pancarte
@@ -316,7 +327,7 @@ public class DoorCommand {
     }
 
     /**
-     * Ferme physiquement la porte : remet les blocs du mur (pas la pancarte car elle sera recréée manuellement)
+     * Ferme physiquement la porte : remet les blocs du mur et la pancarte
      */
     private static void closeDoorPhysically(ServerLevel level, DoorConfig door) {
         // Remettre les blocs du mur
@@ -328,7 +339,62 @@ public class DoorCommand {
             }
         }
 
-        // Note: On ne remet pas automatiquement la pancarte car elle a du texte
-        // L'admin devra la replacer manuellement
+        // Remettre la pancarte avec son texte
+        DoorConfig.SavedBlock signBlock = door.getSignBlock();
+        if (signBlock != null) {
+            BlockPos signPos = signBlock.getPosition();
+            BlockState signState = signBlock.getBlockState();
+
+            if (signPos != null && signState != null) {
+                // Placer le bloc de la pancarte
+                level.setBlock(signPos, signState, 3);
+
+                // Restaurer le texte de la pancarte (BlockEntity)
+                net.minecraft.nbt.CompoundTag nbt = signBlock.getBlockEntityData();
+                if (nbt != null) {
+                    var blockEntity = level.getBlockEntity(signPos);
+                    if (blockEntity != null) {
+                        blockEntity.loadWithComponents(nbt, level.registryAccess());
+                        blockEntity.setChanged();
+                        System.out.println("[DoorCommand] Pancarte restaurée avec son texte");
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Réinitialise toutes les portes de la map active (en fin de partie)
+     * Ferme physiquement toutes les portes ouvertes et réinitialise leur état
+     */
+    public static void resetAllDoors(ServerLevel level) {
+        MapConfig map = MapManager.getSelectedMap();
+        if (map == null) {
+            return;
+        }
+
+        Map<Integer, DoorConfig> doors = map.getDoors();
+        if (doors.isEmpty()) {
+            return;
+        }
+
+        System.out.println("[DoorCommand] Réinitialisation de " + doors.size() + " porte(s)");
+
+        for (DoorConfig door : doors.values()) {
+            // Si la porte est ouverte, la fermer physiquement
+            if (door.isOpen()) {
+                closeDoorPhysically(level, door);
+                System.out.println("[DoorCommand] Porte #" + door.getDoorNumber() + " fermée physiquement");
+            }
+        }
+
+        // Réinitialiser l'état de toutes les portes dans la config
+        map.resetDoors();
+        MapManager.save();
+
+        // Synchroniser avec tous les clients
+        com.zombiemod.system.ServerDoorTracker.syncToAllPlayers();
+
+        System.out.println("[DoorCommand] Toutes les portes réinitialisées");
     }
 }

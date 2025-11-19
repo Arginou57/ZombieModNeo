@@ -75,6 +75,9 @@ public class PlayerDeathHandler {
         WaveManager.reset();
         RespawnManager.reset();
 
+        // Réinitialiser les portes (fermer physiquement et réinitialiser l'état)
+        com.zombiemod.command.DoorCommand.resetAllDoors(level);
+
         level.playSound(null, level.getSharedSpawnPos(), SoundEvents.WITHER_DEATH, SoundSource.MASTER, 1.0f, 0.5f);
     }
 }

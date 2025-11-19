@@ -15,6 +15,7 @@ public class DoorConfig {
 
     private int doorNumber;
     private MapConfig.SerializableBlockPos signPosition; // Position de la pancarte
+    private SavedBlock signBlock; // État de la pancarte (direction, texte, etc.)
     private List<SavedBlock> wallBlocks; // Blocs du mur 3x3
     private boolean isOpen;
     private int cost; // Coût pour ouvrir la porte
@@ -70,20 +71,49 @@ public class DoorConfig {
         this.cost = cost;
     }
 
+    public void setSignBlock(BlockPos pos, BlockState state) {
+        this.signBlock = new SavedBlock(pos, state);
+    }
+
+    public SavedBlock getSignBlock() {
+        return signBlock;
+    }
+
     /**
      * Classe interne pour sauvegarder un bloc avec sa position et son état
      */
     public static class SavedBlock {
         private MapConfig.SerializableBlockPos position;
-        private String blockStateString; // Format: "minecraft:stone_bricks" ou avec propriétés
+        private String blockStateString; // Format: "minecraft:stone_bricks[property=value]"
+        private net.minecraft.nbt.CompoundTag blockEntityData; // Données supplémentaires (texte des pancartes, etc.)
 
         public SavedBlock() {}
 
         public SavedBlock(BlockPos pos, BlockState state) {
             this.position = new MapConfig.SerializableBlockPos(pos);
-            // Sauvegarder le nom du bloc (on pourrait aussi sauvegarder les propriétés si nécessaire)
-            this.blockStateString = net.minecraft.core.registries.BuiltInRegistries.BLOCK
-                .getKey(state.getBlock()).toString();
+            // Sauvegarder le BlockState complet avec ses propriétés
+            this.blockStateString = serializeBlockState(state);
+        }
+
+        private String serializeBlockState(BlockState state) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString());
+
+            // Ajouter les propriétés
+            if (!state.getValues().isEmpty()) {
+                sb.append("[");
+                boolean first = true;
+                for (var entry : state.getValues().entrySet()) {
+                    if (!first) sb.append(",");
+                    first = false;
+                    sb.append(entry.getKey().getName());
+                    sb.append("=");
+                    sb.append(entry.getValue().toString());
+                }
+                sb.append("]");
+            }
+
+            return sb.toString();
         }
 
         public BlockPos getPosition() {
@@ -94,17 +124,72 @@ public class DoorConfig {
             return blockStateString;
         }
 
+        public void setBlockEntityData(net.minecraft.nbt.CompoundTag data) {
+            this.blockEntityData = data;
+        }
+
+        public net.minecraft.nbt.CompoundTag getBlockEntityData() {
+            return blockEntityData;
+        }
+
         public BlockState getBlockState() {
             try {
+                // Parser le blockStateString pour recréer le BlockState avec ses propriétés
+                String[] parts = blockStateString.split("\\[", 2);
+                String blockId = parts[0];
+
                 net.minecraft.resources.ResourceLocation location =
-                    net.minecraft.resources.ResourceLocation.parse(blockStateString);
+                    net.minecraft.resources.ResourceLocation.parse(blockId);
                 net.minecraft.world.level.block.Block block =
                     net.minecraft.core.registries.BuiltInRegistries.BLOCK.get(location);
-                return block != null ? block.defaultBlockState() :
-                    net.minecraft.world.level.block.Blocks.AIR.defaultBlockState();
+
+                if (block == null) {
+                    return net.minecraft.world.level.block.Blocks.AIR.defaultBlockState();
+                }
+
+                BlockState state = block.defaultBlockState();
+
+                // Appliquer les propriétés si elles existent
+                if (parts.length > 1) {
+                    String propertiesStr = parts[1].replace("]", "");
+                    String[] properties = propertiesStr.split(",");
+
+                    for (String prop : properties) {
+                        String[] keyValue = prop.split("=");
+                        if (keyValue.length == 2) {
+                            String key = keyValue[0].trim();
+                            String value = keyValue[1].trim();
+
+                            // Essayer d'appliquer la propriété
+                            for (net.minecraft.world.level.block.state.properties.Property<?> property : state.getProperties()) {
+                                if (property.getName().equals(key)) {
+                                    state = setPropertyValue(state, property, value);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                return state;
             } catch (Exception e) {
+                System.err.println("[SavedBlock] Erreur lors de la désérialisation du BlockState: " + blockStateString);
+                e.printStackTrace();
                 return net.minecraft.world.level.block.Blocks.AIR.defaultBlockState();
             }
+        }
+
+        @SuppressWarnings("unchecked")
+        private <T extends Comparable<T>> BlockState setPropertyValue(BlockState state, net.minecraft.world.level.block.state.properties.Property<T> property, String valueStr) {
+            try {
+                java.util.Optional<T> value = property.getValue(valueStr);
+                if (value.isPresent()) {
+                    return state.setValue(property, value.get());
+                }
+            } catch (Exception e) {
+                System.err.println("[SavedBlock] Erreur lors de l'application de la propriété: " + property.getName() + "=" + valueStr);
+            }
+            return state;
         }
     }
 }

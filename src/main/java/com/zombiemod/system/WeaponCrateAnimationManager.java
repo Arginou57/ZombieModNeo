@@ -72,8 +72,8 @@ public class WeaponCrateAnimationManager {
         animation.currentDisplay = display;
         activeAnimations.put(cratePos, animation);
 
-        System.out.println("[WeaponCrateAnimation] Affichage statique démarré à " + cratePos
-            + " pour item " + item.getDisplayName().getString());
+        // System.out.println("[WeaponCrateAnimation] Affichage statique démarré à " + cratePos
+        //     + " pour item " + item.getDisplayName().getString());
     }
 
     /**
@@ -104,8 +104,8 @@ public class WeaponCrateAnimationManager {
         level.playSound(null, cratePos, ModSounds.MYSTERY_BOX.get(),
             SoundSource.AMBIENT, 1.0f, 1.0f);
 
-        System.out.println("[WeaponCrateAnimation] Animation roulette démarrée à " + cratePos
-            + " avec " + possibleItems.size() + " items pour joueur " + player.getName().getString());
+        // System.out.println("[WeaponCrateAnimation] Animation roulette démarrée à " + cratePos
+        //     + " avec " + possibleItems.size() + " items pour joueur " + player.getName().getString());
     }
 
     /**
@@ -143,7 +143,7 @@ public class WeaponCrateAnimationManager {
                         anim.currentDisplay.kill();
                     }
                     iterator.remove();
-                    System.out.println("[WeaponCrateAnimation] Animation terminée à " + anim.pos + " - Item donné au joueur");
+                    // System.out.println("[WeaponCrateAnimation] Animation terminée à " + anim.pos + " - Item donné au joueur");
                     continue;
                 }
 
@@ -174,8 +174,8 @@ public class WeaponCrateAnimationManager {
                 level.playSound(null, anim.pos, SoundEvents.PLAYER_LEVELUP,
                     SoundSource.BLOCKS, 1.0f, 1.0f);
 
-                System.out.println("[WeaponCrateAnimation] Tick 56 - Affichage de l'item gagné: "
-                    + anim.wonItem.getDisplayName().getString());
+                // System.out.println("[WeaponCrateAnimation] Tick 56 - Affichage de l'item gagné: "
+                //     + anim.wonItem.getDisplayName().getString());
                 continue;
             }
 
@@ -276,7 +276,7 @@ public class WeaponCrateAnimationManager {
                 x, y, z, itemSnbt, leftRotation
             );
 
-            System.out.println("[WeaponCrateAnimation] Commande summon (facing=" + facing + ", " + (isVanillaItem ? "vanilla" : "moddé +90°") + "): " + command);
+            // System.out.println("[WeaponCrateAnimation] Commande summon (facing=" + facing + ", " + (isVanillaItem ? "vanilla" : "moddé +90°") + "): " + command);
 
             // Exécuter la commande côté serveur
             net.minecraft.commands.Commands commands = level.getServer().getCommands();
@@ -299,7 +299,7 @@ public class WeaponCrateAnimationManager {
             // Retourner l'entité la plus récente (la dernière créée)
             if (!nearbyDisplays.isEmpty()) {
                 Display.ItemDisplay display = nearbyDisplays.get(nearbyDisplays.size() - 1);
-                System.out.println("[WeaponCrateAnimation] Display entity créée avec succès: " + display.getId());
+                // System.out.println("[WeaponCrateAnimation] Display entity créée avec succès: " + display.getId());
                 return display;
             } else {
                 System.err.println("[WeaponCrateAnimation] Aucune entity Display trouvée après summon");
@@ -320,7 +320,7 @@ public class WeaponCrateAnimationManager {
         CrateAnimation anim = activeAnimations.remove(pos);
         if (anim != null && anim.currentDisplay != null && anim.currentDisplay.isAlive()) {
             anim.currentDisplay.kill();
-            System.out.println("[WeaponCrateAnimation] Animation arrêtée à " + pos);
+            // System.out.println("[WeaponCrateAnimation] Animation arrêtée à " + pos);
         }
 
         // IMPORTANT: Tuer TOUS les Display.ItemDisplay dans un rayon de 2 blocs
@@ -338,7 +338,7 @@ public class WeaponCrateAnimationManager {
         CrateAnimation anim = activeAnimations.remove(pos);
         if (anim != null && anim.currentDisplay != null && anim.currentDisplay.isAlive()) {
             anim.currentDisplay.kill();
-            System.out.println("[WeaponCrateAnimation] Animation arrêtée à " + pos);
+            // System.out.println("[WeaponCrateAnimation] Animation arrêtée à " + pos);
         }
 
         // IMPORTANT: Tuer TOUS les Display.ItemDisplay dans un rayon de 2 blocs
@@ -367,7 +367,7 @@ public class WeaponCrateAnimationManager {
         }
 
         if (!nearbyDisplays.isEmpty()) {
-            System.out.println("[WeaponCrateAnimation] " + nearbyDisplays.size() + " Display entities supprimées autour de " + center);
+            // System.out.println("[WeaponCrateAnimation] " + nearbyDisplays.size() + " Display entities supprimées autour de " + center);
         }
     }
 
@@ -381,7 +381,7 @@ public class WeaponCrateAnimationManager {
             }
         }
         activeAnimations.clear();
-        System.out.println("[WeaponCrateAnimation] Toutes les animations arrêtées");
+        // System.out.println("[WeaponCrateAnimation] Toutes les animations arrêtées");
     }
 
     /**

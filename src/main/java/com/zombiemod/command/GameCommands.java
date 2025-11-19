@@ -111,6 +111,9 @@ public class GameCommands {
         GameManager.reset();
         WaveManager.reset();
 
+        // Réinitialiser les portes (fermer physiquement et réinitialiser l'état)
+        DoorCommand.resetAllDoors(level);
+
         context.getSource().sendSuccess(() -> Component.literal("§aPartie arrêtée, zombies nettoyés et jeu réinitialisé."), true);
 
         return 1;

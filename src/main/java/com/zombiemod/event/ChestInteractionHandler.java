@@ -29,7 +29,7 @@ public class ChestInteractionHandler {
     private static final long COOLDOWN_MS = 500; // 500ms de cooldown
 
     // Gestionnaire pour le clique gauche (achat de munitions)
-    @SubscribeEvent(priority = EventPriority.HIGH)
+    @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
     public static void onLeftClickBlock(PlayerInteractEvent.LeftClickBlock event) {
         Level level = event.getLevel();
         BlockPos pos = event.getPos();
@@ -124,7 +124,7 @@ public class ChestInteractionHandler {
         }
     }
 
-    @SubscribeEvent(priority = EventPriority.HIGH)
+    @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
     public static void onChestInteract(PlayerInteractEvent.RightClickBlock event) {
         Level level = event.getLevel();
         BlockPos pos = event.getPos();
@@ -140,8 +140,18 @@ public class ChestInteractionHandler {
             return;
         }
 
-        // IMPORTANT: Annuler l'ouverture du coffre des deux côtés (client + serveur)
-        // pour empêcher l'ouverture de l'interface du coffre
+        // IMPORTANT: Ne traiter que la main principale pour éviter les doublons
+        if (event.getHand() != net.minecraft.world.InteractionHand.MAIN_HAND) {
+            // Ne pas annuler ici si déjà annulé, sinon forcer l'annulation
+            if (!event.isCanceled()) {
+                event.setCanceled(true);
+            }
+            return;
+        }
+
+        // IMPORTANT: Si l'événement a déjà été annulé par un plugin de protection,
+        // on le traite quand même pour les weapon crates
+        // On force l'annulation pour empêcher l'ouverture du coffre normal
         event.setCanceled(true);
 
         if (!level.isClientSide) {
