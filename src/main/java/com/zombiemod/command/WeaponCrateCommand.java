@@ -5,6 +5,8 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
+import com.zombiemod.system.ServerWeaponCrateTracker;
+import com.zombiemod.system.WeaponCrateAnimationManager;
 import com.zombiemod.system.WeaponCrateManager;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -14,6 +16,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
@@ -23,6 +26,7 @@ import net.minecraft.world.phys.HitResult;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class WeaponCrateCommand {
 
@@ -95,6 +99,12 @@ public class WeaponCrateCommand {
                         .then(Commands.literal("hand")
                                 .then(Commands.argument("prix", IntegerArgumentType.integer(0))
                                         .executes(WeaponCrateCommand::addAmmoFromHand)))));
+
+        // /weaponcrate reload
+        dispatcher.register(Commands.literal("weaponcrate")
+                .requires(source -> source.hasPermission(2))
+                .then(Commands.literal("reload")
+                        .executes(WeaponCrateCommand::reloadDisplays)));
     }
 
     private static int createCrate(CommandContext<CommandSourceStack> context) {
@@ -404,6 +414,55 @@ public class WeaponCrateCommand {
 
         player.sendSystemMessage(Component.literal("§aMunitions ajoutées: §e" + displayName + " §7(x" + heldItem.getCount() + ", prix: " + prix + ")"));
         player.sendSystemMessage(Component.literal("§7Tous les tags et DataComponents ont été préservés."));
+
+        return 1;
+    }
+
+    // /weaponcrate reload - Recharge tous les items display au-dessus des weapon crates
+    private static int reloadDisplays(CommandContext<CommandSourceStack> context) {
+        if (!(context.getSource().getEntity() instanceof ServerPlayer player)) {
+            return 0;
+        }
+
+        ServerLevel level = (ServerLevel) player.level();
+
+        // Récupérer toutes les weapon crates enregistrées
+        Map<BlockPos, Integer> allCrates = ServerWeaponCrateTracker.getAllCrates();
+
+        if (allCrates.isEmpty()) {
+            player.sendSystemMessage(Component.literal("§cAucune weapon crate trouvée sur le serveur."));
+            return 0;
+        }
+
+        player.sendSystemMessage(Component.literal("§7Rechargement des displays pour §e" + allCrates.size() + " §7weapon crate(s)..."));
+
+        int reloadedCount = 0;
+
+        // Pour chaque weapon crate
+        for (Map.Entry<BlockPos, Integer> entry : allCrates.entrySet()) {
+            BlockPos pos = entry.getKey();
+
+            // Arrêter l'animation/display existant
+            WeaponCrateAnimationManager.stopAnimation(level, pos);
+
+            // Récupérer toutes les armes de la crate
+            List<WeaponCrateManager.WeaponConfig> allWeapons = WeaponCrateManager.getAllWeapons(level, pos);
+
+            // Si la crate a exactement 1 arme, créer un affichage statique
+            if (allWeapons.size() == 1) {
+                WeaponCrateManager.WeaponConfig weapon = allWeapons.get(0);
+                ItemStack itemStack = weapon.toItemStack(level);
+
+                if (!itemStack.isEmpty()) {
+                    WeaponCrateAnimationManager.startStaticDisplay(level, pos, itemStack);
+                    reloadedCount++;
+                }
+            }
+            // Si plusieurs armes : ne rien faire, l'affichage se fera lors de l'ouverture
+        }
+
+        player.sendSystemMessage(Component.literal("§a✓ §e" + reloadedCount + " §adisplay(s) rechargé(s) avec succès !"));
+        player.sendSystemMessage(Component.literal("§7Note: Les crates avec plusieurs armes afficheront leur roulette lors de l'ouverture."));
 
         return 1;
     }

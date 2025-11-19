@@ -30,6 +30,7 @@ public class GameManager {
     private static Set<UUID> activePlayers = new HashSet<>();
     private static Set<UUID> waitingPlayers = new HashSet<>();
     private static int startCountdownTicks = 0;
+    private static String currentMapName = null; // Nom de la map actuelle
 
     public static GameState getGameState() {
         return currentState;
@@ -59,19 +60,27 @@ public class GameManager {
         return startCountdownTicks / 20;
     }
 
-    public static void startGame(ServerLevel level) {
+    public static String getCurrentMapName() {
+        return currentMapName;
+    }
+
+    public static void startGame(ServerLevel level, String mapName) {
         if (currentState != GameState.WAITING) {
             return; // Déjà lancée
         }
 
         currentState = GameState.STARTING;
         startCountdownTicks = 1200; // 60 secondes
+        currentMapName = mapName;
 
         // Recharger les weapon crates depuis la sauvegarde persistante
         System.out.println("[GameManager] Rechargement des weapon crates...");
         ServerWeaponCrateTracker.scanAllLoadedChunks(level);
 
         broadcastToAll(level, "§6§l=== PARTIE ZOMBIE ===");
+        if (mapName != null && !mapName.isEmpty()) {
+            broadcastToAll(level, "§eMap: §6" + mapName);
+        }
         broadcastToAll(level, "§eLa partie démarre dans §c60 secondes §e!");
         broadcastToAll(level, "§7Tapez §6/zombiejoin §7pour rejoindre !");
     }
@@ -279,6 +288,7 @@ public class GameManager {
         activePlayers.clear();
         waitingPlayers.clear();
         startCountdownTicks = 0;
+        currentMapName = null;
     }
 
     public static void broadcastToAll(ServerLevel level, String message) {

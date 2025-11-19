@@ -1,6 +1,7 @@
 package com.zombiemod.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.zombiemod.manager.GameManager;
 import com.zombiemod.manager.PointsManager;
@@ -16,10 +17,12 @@ import java.util.UUID;
 public class GameCommands {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        // /zombiestart
+        // /zombiestart [mapName]
         dispatcher.register(Commands.literal("zombiestart")
                 .requires(source -> source.hasPermission(2))
-                .executes(GameCommands::startGame));
+                .executes(GameCommands::startGame)
+                .then(Commands.argument("mapName", StringArgumentType.word())
+                        .executes(GameCommands::startGameWithMap)));
 
         // /zombiestop
         dispatcher.register(Commands.literal("zombiestop")
@@ -52,8 +55,23 @@ public class GameCommands {
             return 0;
         }
 
-        GameManager.startGame(level);
+        GameManager.startGame(level, null); // Pas de nom de map spécifié
         context.getSource().sendSuccess(() -> Component.literal("§aPartie lancée ! Countdown de 60 secondes démarré."), true);
+
+        return 1;
+    }
+
+    private static int startGameWithMap(CommandContext<CommandSourceStack> context) {
+        ServerLevel level = context.getSource().getLevel();
+        String mapName = StringArgumentType.getString(context, "mapName");
+
+        if (GameManager.getGameState() != GameManager.GameState.WAITING) {
+            context.getSource().sendFailure(Component.literal("§cUne partie est déjà en cours !"));
+            return 0;
+        }
+
+        GameManager.startGame(level, mapName);
+        context.getSource().sendSuccess(() -> Component.literal("§aPartie lancée sur la map §e" + mapName + " §a! Countdown de 60 secondes démarré."), true);
 
         return 1;
     }
@@ -125,6 +143,10 @@ public class GameCommands {
         if (player == null) return 0;
 
         player.sendSystemMessage(Component.literal("§6§l=== STATUT ZOMBIE ==="));
+        String mapName = GameManager.getCurrentMapName();
+        if (mapName != null && !mapName.isEmpty()) {
+            player.sendSystemMessage(Component.literal("§eMap: §6" + mapName));
+        }
         player.sendSystemMessage(Component.literal("§eÉtat: §f" + getStateName(GameManager.getGameState())));
         player.sendSystemMessage(Component.literal("§eVague actuelle: §f" + WaveManager.getCurrentWave()));
         player.sendSystemMessage(Component.literal("§eZombies restants: §f" + WaveManager.getZombiesRemaining()));

@@ -210,20 +210,73 @@ public class WeaponCrateAnimationManager {
         double z = cratePos.getZ() + 0.5;
 
         try {
+            // Récupérer la direction du coffre
+            BlockState chestState = level.getBlockState(cratePos);
+            Direction facing = chestState.getValue(BlockStateProperties.HORIZONTAL_FACING);
+
+            // Vérifier si c'est un item vanilla (minecraft:) ou moddé
+            String itemId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(item.getItem()).toString();
+            boolean isVanillaItem = itemId.startsWith("minecraft:");
+
+            // Calculer la rotation en quaternion selon la direction du coffre
+            // Les items vanilla et moddés ont besoin de rotations différentes
+            // Le quaternion pour une rotation sur l'axe Y: [0, sin(angle/2), 0, cos(angle/2)]
+            String leftRotation;
+
+            if (isVanillaItem) {
+                // Items vanilla: rotation alignée avec le coffre (sans décalage)
+                switch (facing) {
+                    case NORTH:  // Coffre vers nord -> item vers nord (0°)
+                        leftRotation = "[0f,0f,0f,1f]";
+                        break;
+                    case EAST:   // Coffre vers est -> item vers est (90°)
+                        leftRotation = "[0f,0.7071068f,0f,0.7071068f]";
+                        break;
+                    case SOUTH:  // Coffre vers sud -> item vers sud (180°)
+                        leftRotation = "[0f,1f,0f,0f]";
+                        break;
+                    case WEST:   // Coffre vers ouest -> item vers ouest (270°)
+                        leftRotation = "[0f,-0.7071068f,0f,0.7071068f]";
+                        break;
+                    default:
+                        leftRotation = "[0f,0f,0f,1f]";
+                        break;
+                }
+            } else {
+                // Items moddés: rotation perpendiculaire au coffre (+90°)
+                switch (facing) {
+                    case NORTH:  // Coffre vers nord -> item vers est (+90°)
+                        leftRotation = "[0f,0.7071068f,0f,0.7071068f]";
+                        break;
+                    case EAST:   // Coffre vers est -> item vers sud (180°)
+                        leftRotation = "[0f,1f,0f,0f]";
+                        break;
+                    case SOUTH:  // Coffre vers sud -> item vers ouest (270°)
+                        leftRotation = "[0f,-0.7071068f,0f,0.7071068f]";
+                        break;
+                    case WEST:   // Coffre vers ouest -> item vers nord (0°)
+                        leftRotation = "[0f,0f,0f,1f]";
+                        break;
+                    default:
+                        leftRotation = "[0f,0f,0f,1f]";
+                        break;
+                }
+            }
+
             // Sauvegarder l'ItemStack complet en NBT
             CompoundTag itemNBT = (CompoundTag) item.save(level.registryAccess());
 
             // Convertir le NBT en SNBT (String NBT) pour la commande
             String itemSnbt = itemNBT.getAsString();
 
-            // Construire la commande summon avec rotation de 90° sur Y
+            // Construire la commande summon avec rotation adaptée à la direction du coffre
             // Transformation complète avec tous les champs obligatoires
             String command = String.format(
-                "summon minecraft:item_display %.2f %.2f %.2f {item:%s,transformation:{left_rotation:[0f,0.7071068f,0f,0.7071068f],right_rotation:[0f,0f,0f,1f],translation:[0f,0f,0f],scale:[1f,1f,1f]}}",
-                x, y, z, itemSnbt
+                "summon minecraft:item_display %.2f %.2f %.2f {item:%s,transformation:{left_rotation:%s,right_rotation:[0f,0f,0f,1f],translation:[0f,0f,0f],scale:[1f,1f,1f]}}",
+                x, y, z, itemSnbt, leftRotation
             );
 
-            System.out.println("[WeaponCrateAnimation] Commande summon: " + command);
+            System.out.println("[WeaponCrateAnimation] Commande summon (facing=" + facing + ", " + (isVanillaItem ? "vanilla" : "moddé +90°") + "): " + command);
 
             // Exécuter la commande côté serveur
             net.minecraft.commands.Commands commands = level.getServer().getCommands();

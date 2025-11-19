@@ -18,6 +18,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.ChestBlock;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
@@ -28,7 +29,7 @@ public class ChestInteractionHandler {
     private static final long COOLDOWN_MS = 500; // 500ms de cooldown
 
     // Gestionnaire pour le clique gauche (achat de munitions)
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGH)
     public static void onLeftClickBlock(PlayerInteractEvent.LeftClickBlock event) {
         Level level = event.getLevel();
         BlockPos pos = event.getPos();
@@ -41,6 +42,12 @@ public class ChestInteractionHandler {
 
         // Vérifier si c'est une caisse d'armes
         if (!WeaponCrateManager.isWeaponCrate(level, pos)) {
+            return;
+        }
+
+        // Permettre aux OPs en mode créatif de casser la crate normalement
+        if (player.hasPermissions(2) && player.isCreative()) {
+            // Ne pas annuler l'événement, permettre la destruction normale
             return;
         }
 
@@ -117,7 +124,7 @@ public class ChestInteractionHandler {
         }
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGH)
     public static void onChestInteract(PlayerInteractEvent.RightClickBlock event) {
         Level level = event.getLevel();
         BlockPos pos = event.getPos();
@@ -133,10 +140,10 @@ public class ChestInteractionHandler {
             return;
         }
 
-        // Toujours annuler l'ouverture normale
-        event.setCanceled(true);
-
         if (!level.isClientSide) {
+            // Annuler l'ouverture normale du coffre côté serveur
+            event.setCanceled(true);
+
             // Vérifier si le joueur est actif
             if (!GameManager.isPlayerActive(player.getUUID())) {
                 player.sendSystemMessage(Component.literal("§cVous devez être dans la partie pour acheter ! §7(/zombiejoin)"));
