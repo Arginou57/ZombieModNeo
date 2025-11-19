@@ -17,82 +17,101 @@ public class ZombieHelpCommand {
     private static int showHelp(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
 
-        source.sendSuccess(() -> Component.literal("§6§l========== ZOMBIE MODE - AIDE =========="), false);
+        source.sendSuccess(() -> Component.literal("§6§l============ ZOMBIE MODE - AIDE ============"), false);
         source.sendSuccess(() -> Component.literal(""), false);
 
         // GESTION DE PARTIE
-        source.sendSuccess(() -> Component.literal("§e§lGESTION DE PARTIE:"), false);
-        source.sendSuccess(() -> Component.literal("§a/zombiestart §7- Démarre une partie (compte à rebours de 60s)"), false);
+        source.sendSuccess(() -> Component.literal("§e§l► GESTION DE PARTIE:"), false);
+        source.sendSuccess(() -> Component.literal("§a/zombiestart [mapName] §7- Démarre une partie"), false);
+        source.sendSuccess(() -> Component.literal("  §7Compte à rebours de 60s, optionnel: spécifier une map"), false);
+        source.sendSuccess(() -> Component.literal("  §7Exemple: §f/zombiestart §7ou §f/zombiestart arena1"), false);
         source.sendSuccess(() -> Component.literal("§a/zombiestop §7- Arrête la partie en cours"), false);
         source.sendSuccess(() -> Component.literal("§a/zombiejoin §7- Rejoindre la partie"), false);
         source.sendSuccess(() -> Component.literal("§a/zombieleave §7- Quitter la partie"), false);
+        source.sendSuccess(() -> Component.literal("§a/zombiestatus §7- Voir le statut de la partie"), false);
+        source.sendSuccess(() -> Component.literal("§a/zombieskip §7- Passer à la vague suivante (admin)"), false);
         source.sendSuccess(() -> Component.literal(""), false);
 
         // GESTION DES MAPS
-        source.sendSuccess(() -> Component.literal("§e§lGESTION DES MAPS:"), false);
+        source.sendSuccess(() -> Component.literal("§e§l► GESTION DES MAPS:"), false);
         source.sendSuccess(() -> Component.literal("§a/zombiemap create <nom> §7- Créer une nouvelle map"), false);
-        source.sendSuccess(() -> Component.literal("  §7Exemple: §f/zombiemap create arena1"), false);
-        source.sendSuccess(() -> Component.literal("§a/zombiemap list §7- Liste toutes les maps"), false);
-        source.sendSuccess(() -> Component.literal("§a/zombiemap select <nom> §7- Sélectionner une map active"), false);
-        source.sendSuccess(() -> Component.literal("  §7Exemple: §f/zombiemap select arena1"), false);
         source.sendSuccess(() -> Component.literal("§a/zombiemap delete <nom> §7- Supprimer une map"), false);
-        source.sendSuccess(() -> Component.literal("§a/zombiemap info [nom] §7- Infos sur une map (ou la map active)"), false);
+        source.sendSuccess(() -> Component.literal("§a/zombiemap select <nom> §7- Sélectionner une map active"), false);
+        source.sendSuccess(() -> Component.literal("§a/zombiemap list §7- Lister toutes les maps"), false);
+        source.sendSuccess(() -> Component.literal("§a/zombiemap info [nom] §7- Infos sur une map"), false);
         source.sendSuccess(() -> Component.literal(""), false);
 
-        // CONFIGURATION DES MAPS
-        source.sendSuccess(() -> Component.literal("§e§lCONFIGURATION DES MAPS:"), false);
-        source.sendSuccess(() -> Component.literal("§a/respawnpoint <map> §7- Définir le point de respawn pour une map"), false);
-        source.sendSuccess(() -> Component.literal("  §7Exemple: §f/respawnpoint arena1"), false);
-        source.sendSuccess(() -> Component.literal("  §7Vous serez téléporté à la position définie"), false);
-        source.sendSuccess(() -> Component.literal("§a/zombiespawn <map> §7- Ajouter un point de spawn zombie pour une map"), false);
-        source.sendSuccess(() -> Component.literal("  §7Exemple: §f/zombiespawn arena1"), false);
-        source.sendSuccess(() -> Component.literal("  §7Utilisez plusieurs fois pour créer plusieurs points"), false);
-        source.sendSuccess(() -> Component.literal("§a/zombiespawn clear <map> §7- Effacer tous les points de spawn d'une map"), false);
+        // CONFIGURATION: SPAWN POINTS
+        source.sendSuccess(() -> Component.literal("§e§l► POINTS DE SPAWN:"), false);
+        source.sendSuccess(() -> Component.literal("§a/zombierespawn set <mapname> §7- Définir le respawn joueurs"), false);
+        source.sendSuccess(() -> Component.literal("  §7À votre position actuelle"), false);
+        source.sendSuccess(() -> Component.literal("§a/zombiespawn add <mapname> [doorNumber] §7- Ajouter spawn zombie"), false);
+        source.sendSuccess(() -> Component.literal("  §7Sans doorNumber: spawn toujours actif"), false);
+        source.sendSuccess(() -> Component.literal("  §7Avec doorNumber: actif seulement si porte ouverte"), false);
+        source.sendSuccess(() -> Component.literal("  §7Exemple: §f/zombiespawn add arena1 §7ou §f/zombiespawn add arena1 1"), false);
+        source.sendSuccess(() -> Component.literal("§a/zombiespawn clear <mapname> §7- Effacer tous les spawns zombies"), false);
+        source.sendSuccess(() -> Component.literal("§a/zombiespawn list <mapname> §7- Lister les spawns zombies"), false);
+        source.sendSuccess(() -> Component.literal(""), false);
+
+        // CONFIGURATION: PORTES
+        source.sendSuccess(() -> Component.literal("§e§l► PORTES:"), false);
+        source.sendSuccess(() -> Component.literal("§a/zombiedoor add <mapname> <numéro> <coût>"), false);
+        source.sendSuccess(() -> Component.literal("  §7Regardez une pancarte murale, puis tapez la commande"), false);
+        source.sendSuccess(() -> Component.literal("  §7Sauvegarde la pancarte + mur 3x3 derrière"), false);
+        source.sendSuccess(() -> Component.literal("  §7Exemple: §f/zombiedoor add arena1 1 750"), false);
+        source.sendSuccess(() -> Component.literal("§a/zombiedoor remove <mapname> <numéro> §7- Supprimer une porte"), false);
+        source.sendSuccess(() -> Component.literal("§a/zombiedoor list <mapname> §7- Lister toutes les portes"), false);
+        source.sendSuccess(() -> Component.literal("§a/zombiedoor open <mapname> <numéro> §7- Ouvrir (détruit blocs)"), false);
+        source.sendSuccess(() -> Component.literal("§a/zombiedoor close <mapname> <numéro> §7- Fermer (remet blocs)"), false);
+        source.sendSuccess(() -> Component.literal("  §7Les portes se ferment automatiquement en fin de partie"), false);
         source.sendSuccess(() -> Component.literal(""), false);
 
         // CAISSES D'ARMES
-        source.sendSuccess(() -> Component.literal("§e§lCAISSES D'ARMES:"), false);
-        source.sendSuccess(() -> Component.literal("§a/weaponcrate create §7- Créer une caisse vide"), false);
-        source.sendSuccess(() -> Component.literal("  §7Clic droit sur un double coffre puis tapez la commande"), false);
-        source.sendSuccess(() -> Component.literal("§a/weaponcrate preset <type> <prix> §7- Créer une caisse prédéfinie"), false);
-        source.sendSuccess(() -> Component.literal("  §7Types: §fstarter§7, §fadvanced§7, §flegendary"), false);
-        source.sendSuccess(() -> Component.literal("  §7Exemple: §f/weaponcrate preset starter 500"), false);
-        source.sendSuccess(() -> Component.literal("§a/weaponcrate addweapon <item> [count] [weight] [name]"), false);
-        source.sendSuccess(() -> Component.literal("  §7Formats simples:"), false);
-        source.sendSuccess(() -> Component.literal("  §f/weaponcrate addweapon minecraft:wooden_sword"), false);
-        source.sendSuccess(() -> Component.literal("  §f/weaponcrate addweapon minecraft:arrow 64"), false);
-        source.sendSuccess(() -> Component.literal("  §f/weaponcrate addweapon minecraft:diamond_sword 1 50"), false);
-        source.sendSuccess(() -> Component.literal("  §f/weaponcrate addweapon minecraft:bow 1 30 \"§6Arc Magique\""), false);
-        source.sendSuccess(() -> Component.literal("§a/weaponcrate info §7- Voir le contenu de la caisse"), false);
+        source.sendSuccess(() -> Component.literal("§e§l► CAISSES D'ARMES (Mystery Box):"), false);
+        source.sendSuccess(() -> Component.literal("§a/weaponcrate add <coût> <itemId> §7- Créer une caisse"), false);
+        source.sendSuccess(() -> Component.literal("  §7Regardez un coffre, puis tapez la commande"), false);
+        source.sendSuccess(() -> Component.literal("  §7itemId: l'arme dans votre main (§ftacz:xx§7 ou §fminecraft:xx§7)"), false);
+        source.sendSuccess(() -> Component.literal("  §7Exemple: §f/weaponcrate add 500 tacz:ak47"), false);
+        source.sendSuccess(() -> Component.literal("§a/weaponcrate addammo <itemId> <qté> <coût>"), false);
+        source.sendSuccess(() -> Component.literal("  §7Ajouter munitions (achat clic gauche)"), false);
+        source.sendSuccess(() -> Component.literal("  §7Exemple: §f/weaponcrate addammo tacz:ammo_9mm 30 100"), false);
+        source.sendSuccess(() -> Component.literal("§a/weaponcrate remove §7- Supprimer une caisse"), false);
+        source.sendSuccess(() -> Component.literal("§a/weaponcrate scan §7- Scanner toutes les caisses du monde"), false);
+        source.sendSuccess(() -> Component.literal("§a/weaponcrate reload §7- Recharger affichages des caisses"), false);
+        source.sendSuccess(() -> Component.literal("  §7Utile après avoir supprimé toutes les entités"), false);
         source.sendSuccess(() -> Component.literal(""), false);
 
-        // SYSTÈME DE POINTS
-        source.sendSuccess(() -> Component.literal("§e§lPOINTS:"), false);
-        source.sendSuccess(() -> Component.literal("§a/points add <joueur> <montant> §7- Ajouter des points"), false);
-        source.sendSuccess(() -> Component.literal("§a/points remove <joueur> <montant> §7- Retirer des points"), false);
-        source.sendSuccess(() -> Component.literal("§a/points set <joueur> <montant> §7- Définir les points"), false);
-        source.sendSuccess(() -> Component.literal("§a/points get <joueur> §7- Voir les points d'un joueur"), false);
-        source.sendSuccess(() -> Component.literal("§7Info: Chaque kill de zombie donne §e100 points"), false);
+        // JUKEBOXES
+        source.sendSuccess(() -> Component.literal("§e§l► JUKEBOXES (Musique):"), false);
+        source.sendSuccess(() -> Component.literal("§a/zombiejukebox add <coût> §7- Créer un jukebox zombie"), false);
+        source.sendSuccess(() -> Component.literal("  §7Regardez un jukebox avec un disque, puis tapez"), false);
+        source.sendSuccess(() -> Component.literal("  §7Exemple: §f/zombiejukebox add 1000"), false);
+        source.sendSuccess(() -> Component.literal("§a/zombiejukebox remove §7- Supprimer un jukebox zombie"), false);
+        source.sendSuccess(() -> Component.literal("§a/zombiejukebox list §7- Lister tous les jukeboxes"), false);
         source.sendSuccess(() -> Component.literal(""), false);
 
         // INFORMATIONS
-        source.sendSuccess(() -> Component.literal("§e§lINFORMATIONS:"), false);
-        source.sendSuccess(() -> Component.literal("§7• Les joueurs démarrent avec §e500 points"), false);
-        source.sendSuccess(() -> Component.literal("§7• Chaque vague contient §c6 + (vague × 6) zombies"), false);
-        source.sendSuccess(() -> Component.literal("§7• HP des zombies: §c1 cœur + 0.5 cœur/vague"), false);
-        source.sendSuccess(() -> Component.literal("§7• 15% de chance de zombie avec armure"), false);
-        source.sendSuccess(() -> Component.literal("§7• Cooldown de §610s §7entre les vagues"), false);
-        source.sendSuccess(() -> Component.literal("§7• Les joueurs morts respawn à la fin de la vague"), false);
+        source.sendSuccess(() -> Component.literal("§e§l► MÉCANIQUES DU JEU:"), false);
+        source.sendSuccess(() -> Component.literal("§7• Points de départ: §e500 points"), false);
+        source.sendSuccess(() -> Component.literal("§7• Kill zombie: §e+100 points"), false);
+        source.sendSuccess(() -> Component.literal("§7• Zombies par vague: §c6 + (vague × 6)"), false);
+        source.sendSuccess(() -> Component.literal("§7• HP zombies: §c1 cœur + 0.5 cœur/vague"), false);
+        source.sendSuccess(() -> Component.literal("§7• 15% chance zombie avec armure"), false);
+        source.sendSuccess(() -> Component.literal("§7• Cooldown entre vagues: §610 secondes"), false);
+        source.sendSuccess(() -> Component.literal("§7• Joueurs morts: §erespawn fin de vague"), false);
+        source.sendSuccess(() -> Component.literal("§7• Portes: §eactivent nouveaux spawns zombies"), false);
         source.sendSuccess(() -> Component.literal(""), false);
 
-        // FICHIERS DE CONFIG
-        source.sendSuccess(() -> Component.literal("§e§lCONFIGURATION:"), false);
-        source.sendSuccess(() -> Component.literal("§7Fichiers dans §fconfig/§7:"), false);
-        source.sendSuccess(() -> Component.literal("  §f• zombiemod.json §7- Config du gameplay"), false);
+        // FICHIERS
+        source.sendSuccess(() -> Component.literal("§e§l► FICHIERS DE CONFIG:"), false);
+        source.sendSuccess(() -> Component.literal("§7Dossier: §fconfig/"), false);
+        source.sendSuccess(() -> Component.literal("  §f• zombiemod.json §7- Configuration gameplay"), false);
         source.sendSuccess(() -> Component.literal("  §f• zombiemod-maps.json §7- Sauvegarde des maps"), false);
+        source.sendSuccess(() -> Component.literal("  §f• zombiemod-drops.json §7- Configuration des drops"), false);
+        source.sendSuccess(() -> Component.literal("  §f• zombiemod-mobs.json §7- Configuration des mobs"), false);
         source.sendSuccess(() -> Component.literal(""), false);
 
-        source.sendSuccess(() -> Component.literal("§6§l========================================"), false);
+        source.sendSuccess(() -> Component.literal("§6§l============================================"), false);
 
         return 1;
     }
