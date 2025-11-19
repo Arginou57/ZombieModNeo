@@ -14,6 +14,12 @@ public class PlayerConnectionHandler {
         if (event.getEntity() instanceof ServerPlayer player) {
             // Envoyer la liste des weapon crates au joueur qui vient de se connecter
             ServerWeaponCrateTracker.syncToPlayer(player);
+
+            // Envoyer la liste des jukeboxes au joueur qui vient de se connecter
+            com.zombiemod.system.ServerJukeboxTracker.syncToPlayer(player);
+
+            // Envoyer la liste des portes au joueur qui vient de se connecter
+            com.zombiemod.system.ServerDoorTracker.syncToPlayer(player);
         }
     }
 }

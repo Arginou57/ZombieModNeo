@@ -40,6 +40,7 @@ public class ZombieMod {
         NeoForge.EVENT_BUS.register(ZombieDropHandler.class);
         NeoForge.EVENT_BUS.register(PlayerConnectionHandler.class);
         NeoForge.EVENT_BUS.register(JukeboxInteractionHandler.class);
+        NeoForge.EVENT_BUS.register(DoorInteractionHandler.class);
 
         // Register network packets
         modEventBus.addListener(this::onRegisterPackets);
@@ -73,6 +74,9 @@ public class ZombieMod {
 
         // Initialiser le tracker de jukeboxes
         ServerJukeboxTracker.initialize(event.getServer().overworld());
+
+        // Initialiser le tracker de portes
+        com.zombiemod.system.ServerDoorTracker.initialize(event.getServer().overworld());
     }
 
     @SubscribeEvent
@@ -80,6 +84,7 @@ public class ZombieMod {
         GameCommands.register(event.getDispatcher());
         SpawnCommand.register(event.getDispatcher());
         RespawnCommand.register(event.getDispatcher());
+        DoorCommand.register(event.getDispatcher());
         WeaponCrateCommand.register(event.getDispatcher());
         ZombieJukeboxCommand.register(event.getDispatcher());
         ZombieMapCommand.register(event.getDispatcher());

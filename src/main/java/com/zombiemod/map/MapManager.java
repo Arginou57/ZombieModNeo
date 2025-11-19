@@ -176,6 +176,14 @@ public class MapManager {
         return map != null ? map.getZombieSpawnPoints() : new ArrayList<>();
     }
 
+    /**
+     * Récupère les points de spawn actifs en fonction des portes ouvertes
+     */
+    public static List<BlockPos> getActiveZombieSpawnPoints() {
+        MapConfig map = getSelectedMap();
+        return map != null ? map.getActiveZombieSpawnPoints() : new ArrayList<>();
+    }
+
     // Classe pour la sérialisation JSON
     private static class MapData {
         Map<String, MapConfig> maps;

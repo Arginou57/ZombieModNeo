@@ -72,11 +72,12 @@ public class WaveManager {
         GameManager.broadcastToAll(level, "§6§l=== VAGUE " + currentWave + " ===");
         GameManager.broadcastToAll(level, "§c" + zombiesRemaining + " zombies §eà éliminer !");
 
-        List<BlockPos> spawnPoints = MapManager.getZombieSpawnPoints();
+        // Utiliser les spawns actifs (en fonction des portes ouvertes)
+        List<BlockPos> spawnPoints = MapManager.getActiveZombieSpawnPoints();
         if (spawnPoints.isEmpty()) {
             String mapName = MapManager.getSelectedMapName();
-            GameManager.broadcastToAll(level, "§c§lERREUR: Aucun point de spawn défini pour la map '" + mapName + "' !");
-            GameManager.broadcastToAll(level, "§7Un admin doit faire §f/zombiespawn " + mapName);
+            GameManager.broadcastToAll(level, "§c§lERREUR: Aucun point de spawn actif pour la map '" + mapName + "' !");
+            GameManager.broadcastToAll(level, "§7Vérifiez que des portes sont ouvertes ou ajoutez des spawns sans porte.");
             return;
         }
 
@@ -364,19 +365,25 @@ public class WaveManager {
                 if (currentZombieCount < maxZombies && spawnDelayTicks >= spawnDelay) {
                     // Spawner un zombie
                     RandomSource random = level.getRandom();
-                    List<BlockPos> spawnPoints = MapManager.getZombieSpawnPoints();
-                    BlockPos spawnPos = spawnPoints.get(random.nextInt(spawnPoints.size()));
+                    // Utiliser les spawns actifs (en fonction des portes ouvertes)
+                    List<BlockPos> spawnPoints = MapManager.getActiveZombieSpawnPoints();
+                    if (spawnPoints.isEmpty()) {
+                        System.err.println("[WaveManager] Aucun point de spawn actif ! Impossible de spawner des zombies.");
+                        spawnDelayTicks = 0; // Reset spawn delay
+                    } else {
+                        BlockPos spawnPos = spawnPoints.get(random.nextInt(spawnPoints.size()));
 
-                    // Déterminer si ce zombie sera glowing (X derniers configurables)
-                    int totalZombies = 6 + (currentWave * 6);
-                    int zombieIndex = totalZombies - zombiesToSpawn;
-                    int glowingCount = ZombieConfig.get().getGlowingZombiesCount();
-                    boolean glowing = zombieIndex >= totalZombies - glowingCount;
+                        // Déterminer si ce zombie sera glowing (X derniers configurables)
+                        int totalZombies = 6 + (currentWave * 6);
+                        int zombieIndex = totalZombies - zombiesToSpawn;
+                        int glowingCount = ZombieConfig.get().getGlowingZombiesCount();
+                        boolean glowing = zombieIndex >= totalZombies - glowingCount;
 
-                    spawnMob(level, spawnPos, glowing);
+                        spawnMob(level, spawnPos, glowing);
 
-                    zombiesToSpawn--;
-                    spawnDelayTicks = 0;
+                        zombiesToSpawn--;
+                        spawnDelayTicks = 0;
+                    }
                 }
             }
         }

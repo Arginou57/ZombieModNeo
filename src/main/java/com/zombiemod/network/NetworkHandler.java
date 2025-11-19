@@ -1,6 +1,7 @@
 package com.zombiemod.network;
 
 import com.zombiemod.ZombieMod;
+import com.zombiemod.network.packet.DoorSyncPacket;
 import com.zombiemod.network.packet.GameSyncPacket;
 import com.zombiemod.network.packet.JukeboxSyncPacket;
 import com.zombiemod.network.packet.PointsAnimationPacket;
@@ -39,6 +40,12 @@ public class NetworkHandler {
                 JukeboxSyncPacket.TYPE,
                 JukeboxSyncPacket.STREAM_CODEC,
                 JukeboxSyncPacket::handle
+        );
+
+        registrar.playToClient(
+                DoorSyncPacket.TYPE,
+                DoorSyncPacket.STREAM_CODEC,
+                DoorSyncPacket::handle
         );
     }
 

@@ -140,10 +140,11 @@ public class ChestInteractionHandler {
             return;
         }
 
-        if (!level.isClientSide) {
-            // Annuler l'ouverture normale du coffre côté serveur
-            event.setCanceled(true);
+        // IMPORTANT: Annuler l'ouverture du coffre des deux côtés (client + serveur)
+        // pour empêcher l'ouverture de l'interface du coffre
+        event.setCanceled(true);
 
+        if (!level.isClientSide) {
             // Vérifier si le joueur est actif
             if (!GameManager.isPlayerActive(player.getUUID())) {
                 player.sendSystemMessage(Component.literal("§cVous devez être dans la partie pour acheter ! §7(/zombiejoin)"));

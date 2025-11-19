@@ -91,6 +91,11 @@ public class ServerJukeboxTracker {
         NetworkHandler.sendToAllPlayers(new JukeboxSyncPacket(getAllJukeboxes()));
     }
 
+    public static void syncToPlayer(net.minecraft.server.level.ServerPlayer player) {
+        System.out.println("[ServerJukeboxTracker] Synchronisation de " + jukeboxes.size() + " jukeboxes avec " + player.getName().getString());
+        NetworkHandler.sendToPlayer(player, new JukeboxSyncPacket(getAllJukeboxes()));
+    }
+
     public static void reset() {
         jukeboxes.clear();
     }

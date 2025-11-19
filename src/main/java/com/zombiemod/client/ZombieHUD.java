@@ -44,10 +44,11 @@ public class ZombieHUD {
             graphics.drawString(font, joinText, x2, 70, 0xFFFFFF);
         }
 
-        // IMPORTANT: Afficher l'info des weapon crates et jukeboxes AVANT de vérifier si le joueur est dans la partie
+        // IMPORTANT: Afficher l'info des weapon crates, jukeboxes et portes AVANT de vérifier si le joueur est dans la partie
         // (permet aux admins de voir le prix même hors partie)
         renderWeaponCrateInfo(graphics, font, mc, player);
         renderJukeboxInfo(graphics, font, mc, player);
+        renderDoorInfo(graphics, font, mc, player);
 
         // Si le joueur n'est pas dans la partie, ne rien afficher d'autre
         if (!ClientGameData.isLocalPlayerActive() && !ClientGameData.isLocalPlayerWaiting()) {
@@ -299,5 +300,77 @@ public class ZombieHUD {
         int actionWidth = font.width(actionText);
         int actionX = (screenWidth - actionWidth) / 2;
         graphics.drawString(font, actionText, actionX, baseY + 12, 0xFFFFFF);
+    }
+
+    private static void renderDoorInfo(GuiGraphics graphics, Font font, Minecraft mc, Player player) {
+        // Raycasting pour détecter le bloc regardé
+        Vec3 eyePos = player.getEyePosition(1.0f);
+        Vec3 lookVec = player.getViewVector(1.0f);
+        Vec3 endPos = eyePos.add(lookVec.scale(5.0)); // Distance de 5 blocs
+
+        ClipContext context = new ClipContext(
+            eyePos,
+            endPos,
+            ClipContext.Block.OUTLINE,
+            ClipContext.Fluid.NONE,
+            player
+        );
+
+        BlockHitResult hitResult = player.level().clip(context);
+
+        // Vérifier si on regarde un bloc
+        if (hitResult.getType() != HitResult.Type.BLOCK) {
+            return;
+        }
+
+        BlockPos lookingAt = hitResult.getBlockPos();
+
+        // Vérifier si c'est un panneau mural
+        if (!(player.level().getBlockState(lookingAt).getBlock() instanceof net.minecraft.world.level.block.WallSignBlock)) {
+            return;
+        }
+
+        // DEBUG: Log quand on regarde un panneau
+        System.out.println("[ZombieHUD] Regardant panneau à: " + lookingAt);
+
+        // Vérifier si c'est une porte (utiliser le cache client)
+        boolean isDoor = ClientDoorData.isDoor(lookingAt);
+        System.out.println("[ZombieHUD] isDoor: " + isDoor);
+
+        if (!isDoor) {
+            return;
+        }
+
+        // Récupérer les données de la porte
+        int doorNumber = ClientDoorData.getDoorNumber(lookingAt);
+        int cost = ClientDoorData.getCost(lookingAt);
+        boolean isOpen = ClientDoorData.isOpen(lookingAt);
+        System.out.println("[ZombieHUD] Porte #" + doorNumber + ", Coût: " + cost + ", Ouverte: " + isOpen);
+
+        // Position au-dessus de la hotbar (centré)
+        int screenWidth = graphics.guiWidth();
+        int screenHeight = graphics.guiHeight();
+
+        // Position Y : bien au-dessus de la hotbar et de la barre d'expérience
+        int baseY = screenHeight - 100;
+
+        if (isOpen) {
+            // Porte déjà ouverte
+            String statusText = "§a§lPorte #" + doorNumber + " - OUVERTE";
+            int statusWidth = font.width(statusText);
+            int statusX = (screenWidth - statusWidth) / 2;
+            graphics.drawString(font, statusText, statusX, baseY, 0xFFFFFF);
+        } else {
+            // Porte fermée - afficher le prix et l'action
+            String priceText = "§6§lPorte #" + doorNumber + " §7- §ePrix: §6" + cost + " points";
+            int priceWidth = font.width(priceText);
+            int priceX = (screenWidth - priceWidth) / 2;
+            graphics.drawString(font, priceText, priceX, baseY, 0xFFFFFF);
+
+            String actionText = "§7Clique §edroit §7pour ouvrir";
+            int actionWidth = font.width(actionText);
+            int actionX = (screenWidth - actionWidth) / 2;
+            graphics.drawString(font, actionText, actionX, baseY + 12, 0xFFFFFF);
+        }
     }
 }
