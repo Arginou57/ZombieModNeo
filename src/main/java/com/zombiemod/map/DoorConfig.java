@@ -85,7 +85,7 @@ public class DoorConfig {
     public static class SavedBlock {
         private MapConfig.SerializableBlockPos position;
         private String blockStateString; // Format: "minecraft:stone_bricks[property=value]"
-        private net.minecraft.nbt.CompoundTag blockEntityData; // Données supplémentaires (texte des pancartes, etc.)
+        private String blockEntityDataString; // Données NBT en format String (SNBT)
 
         public SavedBlock() {}
 
@@ -125,11 +125,25 @@ public class DoorConfig {
         }
 
         public void setBlockEntityData(net.minecraft.nbt.CompoundTag data) {
-            this.blockEntityData = data;
+            if (data != null) {
+                // Convertir CompoundTag en String (SNBT)
+                this.blockEntityDataString = data.getAsString();
+            } else {
+                this.blockEntityDataString = null;
+            }
         }
 
         public net.minecraft.nbt.CompoundTag getBlockEntityData() {
-            return blockEntityData;
+            if (blockEntityDataString == null || blockEntityDataString.isEmpty()) {
+                return null;
+            }
+            try {
+                // Convertir String (SNBT) en CompoundTag
+                return net.minecraft.nbt.TagParser.parseTag(blockEntityDataString);
+            } catch (com.mojang.brigadier.exceptions.CommandSyntaxException e) {
+                System.err.println("[DoorConfig] Erreur lors du parsing NBT: " + e.getMessage());
+                return null;
+            }
         }
 
         public BlockState getBlockState() {

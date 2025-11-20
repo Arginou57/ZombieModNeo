@@ -13,8 +13,6 @@ public class ZombieConfig {
     // Configuration par défaut
     private int maxZombiesOnMap = 32;
     private double spawnDelaySeconds = 2.0;
-    private double heartsPerWave = 0.5; // 1 coeur = 2 HP
-    private int startingHearts = 1; // HP de départ (1 coeur = 2 HP)
     private double zombieFollowRange = 32.0; // Portée de détection des joueurs en blocs
     private double armoredZombieChance = 0.15; // 15% de chance de spawner avec armure
     private int waveTimeoutSeconds = 50; // Temps max pour finir une vague (0 = désactivé)
@@ -81,26 +79,6 @@ public class ZombieConfig {
         return (int) (spawnDelaySeconds * 20);
     }
 
-    public double getHeartsPerWave() {
-        return heartsPerWave;
-    }
-
-    public int getStartingHearts() {
-        return startingHearts;
-    }
-
-    public int getStartingHP() {
-        return startingHearts * 2;
-    }
-
-    // Calcul des HP pour une vague donnée
-    public float getHealthForWave(int wave) {
-        // HP = startingHP + (wave - 1) * heartsPerWave * 2
-        int baseHP = getStartingHP();
-        float additionalHP = (wave - 1) * (float) heartsPerWave * 2.0f;
-        return baseHP + additionalHP;
-    }
-
     public double getZombieFollowRange() {
         return zombieFollowRange;
     }
@@ -129,16 +107,6 @@ public class ZombieConfig {
 
     public void setSpawnDelaySeconds(double value) {
         this.spawnDelaySeconds = value;
-        save();
-    }
-
-    public void setHeartsPerWave(double value) {
-        this.heartsPerWave = value;
-        save();
-    }
-
-    public void setStartingHearts(int value) {
-        this.startingHearts = value;
         save();
     }
 }

@@ -297,6 +297,53 @@ public class GameManager {
         return totalActivePlayers > 0 && deadCount == totalActivePlayers;
     }
 
+    /**
+     * Vérifie si tous les joueurs actifs sont déconnectés
+     */
+    public static boolean areAllPlayersDisconnected(ServerLevel level) {
+        if (activePlayers.isEmpty() && waitingPlayers.isEmpty()) {
+            return true;
+        }
+
+        // Vérifier si au moins un joueur actif ou en attente est connecté
+        for (UUID uuid : activePlayers) {
+            ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
+            if (player != null) {
+                return false; // Au moins un joueur actif est connecté
+            }
+        }
+
+        for (UUID uuid : waitingPlayers) {
+            ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
+            if (player != null) {
+                return false; // Au moins un joueur en attente est connecté
+            }
+        }
+
+        return true; // Tous les joueurs sont déconnectés
+    }
+
+    /**
+     * Arrête automatiquement la partie (appelé quand tous les joueurs se déconnectent)
+     */
+    public static void stopGameAutomatic(ServerLevel level) {
+        if (currentState == GameState.WAITING) {
+            return; // Aucune partie en cours
+        }
+
+        System.out.println("[ZombieMod] Arrêt automatique de la partie - Tous les joueurs sont déconnectés");
+
+        // Nettoyer tous les mobs
+        WaveManager.killAllMobs();
+
+        // Réinitialiser tous les managers
+        reset();
+        WaveManager.reset();
+
+        // Réinitialiser les portes (fermer physiquement et réinitialiser l'état)
+        com.zombiemod.command.DoorCommand.resetAllDoors(level);
+    }
+
     public static void reset() {
         currentState = GameState.WAITING;
         activePlayers.clear();

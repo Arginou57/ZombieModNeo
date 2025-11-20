@@ -60,6 +60,13 @@ public class WaveManager {
     }
 
     public static void startWave(ServerLevel level) {
+        // Vérifier si tous les joueurs sont déconnectés avant de démarrer la vague
+        if (GameManager.areAllPlayersDisconnected(level)) {
+            System.out.println("[ZombieMod] Tous les joueurs sont déconnectés - Arrêt automatique de la partie avant la vague " + (currentWave + 1));
+            GameManager.stopGameAutomatic(level);
+            return;
+        }
+
         currentWave++;
         zombiesRemaining = 6 + (currentWave * 6);
         zombiesToSpawn = zombiesRemaining;
@@ -110,8 +117,8 @@ public class WaveManager {
         mob.moveTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, 0, 0);
         mob.setPersistenceRequired();
 
-        // HP progressifs basés sur la vague
-        float health = ZombieConfig.get().getHealthForWave(currentWave);
+        // HP progressifs basés sur la vague (utilise la config du mob)
+        float health = mobEntry.getHealthForWave(currentWave);
         mob.setHealth(health);
         mob.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(health);
 
@@ -124,6 +131,19 @@ public class WaveManager {
         // Appliquer la limite de vitesse si maxSpeed > 0 (rétrocompatibilité)
         double finalSpeed = (mobEntry.maxSpeed > 0) ? Math.min(speed, mobEntry.maxSpeed) : speed;
         mob.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED).setBaseValue(finalSpeed);
+
+        // Dégâts progressifs : startingDamage + (damagePerWave * currentWave), plafonné à maxDamage
+        // Convertir les cœurs en HP (1 cœur = 2 HP)
+        double damage = mobEntry.startingDamage + (mobEntry.damagePerWave * (currentWave - 1));
+        // Appliquer la limite de dégâts si maxDamage > 0 (rétrocompatibilité)
+        double finalDamage = (mobEntry.maxDamage > 0) ? Math.min(damage, mobEntry.maxDamage) : damage;
+        // Convertir en HP (multiply by 2)
+        double damageHP = finalDamage * 2.0;
+
+        // Appliquer les dégâts au mob
+        if (mob.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE) != null) {
+            mob.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE).setBaseValue(damageHP);
+        }
 
         // Désactiver les drops
         mob.setCanPickUpLoot(false);
