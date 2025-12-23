@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Puissance 4 - Simulateur</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Puissance 4</h1>
+
+        <div class="game-info">
+            <div class="player player-1">
+                <div class="token red"></div>
+                <span>Joueur 1</span>
+            </div>
+            <div class="turn-indicator">
+                <span id="current-player">Tour du Joueur 1</span>
+            </div>
+            <div class="player player-2">
+                <div class="token yellow"></div>
+                <span>Joueur 2</span>
+            </div>
+        </div>
+
+        <div class="game-board" id="game-board">
+            <!-- Les colonnes seront générées par JavaScript -->
+        </div>
+
+        <div class="controls">
+            <button id="restart-btn" class="btn">Nouvelle Partie</button>
+            <button id="undo-btn" class="btn">Annuler</button>
+        </div>
+
+        <div class="score-board">
+            <div class="score">
+                <span class="score-label">Joueur 1</span>
+                <span class="score-value" id="score-1">0</span>
+            </div>
+            <div class="score">
+                <span class="score-label">Égalités</span>
+                <span class="score-value" id="score-draw">0</span>
+            </div>
+            <div class="score">
+                <span class="score-label">Joueur 2</span>
+                <span class="score-value" id="score-2">0</span>
+            </div>
+        </div>
+
+        <div id="winner-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2 id="winner-message">Victoire!</h2>
+                <button id="play-again-btn" class="btn btn-primary">Rejouer</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
