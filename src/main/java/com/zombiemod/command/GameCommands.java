@@ -4,6 +4,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.zombiemod.manager.GameManager;
+import com.zombiemod.manager.InventoryManager;
 import com.zombiemod.manager.PointsManager;
 import com.zombiemod.manager.WaveManager;
 import net.minecraft.commands.CommandSourceStack;
@@ -90,20 +91,26 @@ public class GameCommands {
         // Nettoyer tous les mobs avec la méthode dédiée
         WaveManager.killAllMobs();
 
-        // Mettre tous les joueurs en spectateur
+        // Restaurer les inventaires et mettre tous les joueurs en survival
         for (UUID uuid : GameManager.getActivePlayers()) {
             ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
             if (player != null) {
-                player.setGameMode(net.minecraft.world.level.GameType.SPECTATOR);
+                InventoryManager.clearInventory(player);
+                InventoryManager.restoreInventory(player);
+                player.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
                 player.sendSystemMessage(Component.literal("§7La partie a été arrêtée."));
+                player.sendSystemMessage(Component.literal("§aVotre inventaire a été restauré."));
             }
         }
 
         for (UUID uuid : GameManager.getWaitingPlayers()) {
             ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
             if (player != null) {
-                player.setGameMode(net.minecraft.world.level.GameType.SPECTATOR);
+                InventoryManager.clearInventory(player);
+                InventoryManager.restoreInventory(player);
+                player.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
                 player.sendSystemMessage(Component.literal("§7La partie a été arrêtée."));
+                player.sendSystemMessage(Component.literal("§aVotre inventaire a été restauré."));
             }
         }
 

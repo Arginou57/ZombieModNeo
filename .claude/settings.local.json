@@ -24,7 +24,12 @@
       "Bash(cmd //c copy \"sounds\\005 Nacht Der Untoten - Round End.mp3\" \"src\\main\\resources\\assets\\zombiemod\\sounds\\round_end.mp3\")",
       "Bash(cmd //c copy:*)",
       "Bash(cmd //c:*)",
-      "Bash(where:*)"
+      "Bash(where:*)",
+      "Bash(cat:*)",
+      "Bash(.gradlew.bat build:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:docs.illusivesoulworks.com)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

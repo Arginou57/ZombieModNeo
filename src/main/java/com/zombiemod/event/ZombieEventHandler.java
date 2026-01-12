@@ -62,9 +62,6 @@ public class ZombieEventHandler {
 
                 // Ajouter des points
                 PointsManager.addPoints(player.getUUID(), 100);
-                int totalPoints = PointsManager.getPoints(player.getUUID());
-
-                player.sendSystemMessage(Component.literal("§a+100 points §7(Total: §e" + totalPoints + "§7)"));
 
                 // Envoyer le packet d'animation au client
                 NetworkHandler.sendToPlayer(player, new PointsAnimationPacket(100));

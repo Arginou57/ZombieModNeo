@@ -17,12 +17,14 @@ public class ZombieDropsConfig {
         public double chance; // Chance de drop (0.0 à 1.0)
         public int minCount; // Nombre minimum d'items à drop
         public int maxCount; // Nombre maximum d'items à drop
+        public boolean enabled; // Activer/désactiver ce drop
 
-        public DropEntry(String item, double chance, int minCount, int maxCount) {
+        public DropEntry(String item, double chance, int minCount, int maxCount, boolean enabled) {
             this.item = item;
             this.chance = chance;
             this.minCount = minCount;
             this.maxCount = maxCount;
+            this.enabled = enabled;
         }
     }
 
@@ -34,9 +36,9 @@ public class ZombieDropsConfig {
     private static File configFile;
 
     public ZombieDropsConfig() {
-        // Drops par défaut
-        drops.add(new DropEntry("minecraft:gunpowder", 0.5, 1, 3)); // 50% de chance, 1-3 gunpowder
-        drops.add(new DropEntry("minecraft:copper_ingot", 0.3, 1, 2)); // 30% de chance, 1-2 copper_ingot
+        // Drops par défaut (désactivés)
+        drops.add(new DropEntry("minecraft:gunpowder", 0.5, 1, 3, false));
+        drops.add(new DropEntry("minecraft:copper_ingot", 0.3, 1, 2, false));
     }
 
     public static void init(File configDir) {
@@ -89,8 +91,8 @@ public class ZombieDropsConfig {
     }
 
     // Setters (si besoin de modifier via commandes)
-    public void addDrop(String item, double chance, int minCount, int maxCount) {
-        drops.add(new DropEntry(item, chance, minCount, maxCount));
+    public void addDrop(String item, double chance, int minCount, int maxCount, boolean enabled) {
+        drops.add(new DropEntry(item, chance, minCount, maxCount, enabled));
         save();
     }
 

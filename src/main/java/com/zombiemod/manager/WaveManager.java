@@ -88,8 +88,8 @@ public class WaveManager {
             return;
         }
 
-        // Son de début de round
-        GameManager.playGlobalSound(level, ModSounds.ROUND_START.get(), 1.0f);
+        // Son de début de round (uniquement pour les joueurs de la partie)
+        GameManager.playSoundToActivePlayers(level, ModSounds.ROUND_START.get(), 1.0f);
     }
 
     private static void spawnMob(ServerLevel level, BlockPos pos, boolean glowing) {
@@ -122,8 +122,8 @@ public class WaveManager {
         mob.setHealth(health);
         mob.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(health);
 
-        // Portée de détection des joueurs (Follow Range)
-        double followRange = ZombieConfig.get().getZombieFollowRange();
+        // Portée de détection des joueurs (Follow Range) - s'applique à tous les mobs
+        double followRange = ZombieConfig.get().getMobFollowRange();
         mob.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.FOLLOW_RANGE).setBaseValue(followRange);
 
         // Vitesse progressive : baseSpeed + (speedPerWave * currentWave), plafonnée à maxSpeed
@@ -147,6 +147,10 @@ public class WaveManager {
 
         // Désactiver les drops
         mob.setCanPickUpLoot(false);
+
+        // Marqueur pour identifier les mobs des vagues : oak_button sur la tête (invisible)
+        mob.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.OAK_BUTTON));
+        mob.setDropChance(net.minecraft.world.entity.EquipmentSlot.HEAD, 0.0f);
 
         // Effet glowing pour les derniers
         if (glowing) {
@@ -282,23 +286,16 @@ public class WaveManager {
 
         // Countdown 10s
         waveCountdownTicks = 200;
-        GameManager.broadcastToAll(level, "§a§lVague " + currentWave + " terminée !");
-        GameManager.broadcastToAll(level, "§eProchaine vague dans §610 secondes§e...");
+        GameManager.broadcastToActivePlayers(level, "§a§lVague " + currentWave + " terminée !");
 
-        // Son de fin de round
-        GameManager.playGlobalSound(level, ModSounds.ROUND_END.get(), 1.0f);
+        // Son de fin de round (uniquement pour les joueurs de la partie)
+        GameManager.playSoundToActivePlayers(level, ModSounds.ROUND_END.get(), 1.0f);
     }
 
     public static void tick(ServerLevel level) {
         // Gérer le countdown entre vagues
         if (GameManager.getGameState() == GameManager.GameState.WAVE_COOLDOWN) {
             waveCountdownTicks--;
-            int seconds = waveCountdownTicks / 20;
-
-            if (waveCountdownTicks % 20 == 0 && seconds > 0) {
-                GameManager.broadcastToAll(level, "§eVague " + (currentWave + 1) + " dans §6" + seconds + "§e...");
-                GameManager.playGlobalSound(level, SoundEvents.EXPERIENCE_ORB_PICKUP, 1.0f);
-            }
 
             if (waveCountdownTicks <= 0) {
                 startWave(level);
@@ -334,21 +331,21 @@ public class WaveManager {
 
                 // Avertissements
                 if (timeoutSeconds == maxSeconds - 10 && timeoutTicks % 20 == 0) {
-                    GameManager.broadcastToAll(level, "§c⚠ Attention ! Aucun zombie tué depuis " + (maxSeconds - 10) + "s !");
-                    GameManager.playGlobalSound(level, SoundEvents.ANVIL_LAND, 1.0f);
+                    GameManager.broadcastToActivePlayers(level, "§c⚠ Attention ! Aucun zombie tué depuis " + (maxSeconds - 10) + "s !");
+                    GameManager.playSoundToActivePlayers(level, SoundEvents.ANVIL_LAND, 1.0f);
                 } else if (timeoutSeconds == maxSeconds - 5 && timeoutTicks % 20 == 0) {
-                    GameManager.broadcastToAll(level, "§c§l⚠ TIMEOUT DANS 5 SECONDES !");
-                    GameManager.playGlobalSound(level, SoundEvents.ANVIL_LAND, 1.2f);
+                    GameManager.broadcastToActivePlayers(level, "§c§l⚠ TIMEOUT DANS 5 SECONDES !");
+                    GameManager.playSoundToActivePlayers(level, SoundEvents.ANVIL_LAND, 1.2f);
                 } else if (timeoutSeconds >= maxSeconds - 3 && timeoutSeconds < maxSeconds && timeoutTicks % 20 == 0) {
                     int remaining = maxSeconds - timeoutSeconds;
-                    GameManager.broadcastToAll(level, "§c§l" + remaining + "...");
-                    GameManager.playGlobalSound(level, SoundEvents.ANVIL_LAND, 1.5f);
+                    GameManager.broadcastToActivePlayers(level, "§c§l" + remaining + "...");
+                    GameManager.playSoundToActivePlayers(level, SoundEvents.ANVIL_LAND, 1.5f);
                 }
 
                 // Timeout atteint - forcer la fin de vague
                 if (timeoutTicks >= timeoutMax) {
-                    GameManager.broadcastToAll(level, "§4§l✖ TIMEOUT ! Aucune progression depuis " + maxSeconds + "s - Vague terminée de force.");
-                    level.playSound(null, BlockPos.ZERO, SoundEvents.WITHER_DEATH, SoundSource.MASTER, 0.5f, 0.8f);
+                    GameManager.broadcastToActivePlayers(level, "§4§l✖ TIMEOUT ! Aucune progression depuis " + maxSeconds + "s - Vague terminée de force.");
+                    GameManager.playSoundToActivePlayers(level, SoundEvents.WITHER_DEATH, 0.8f);
 
                     // Tuer tous les mobs restants
                     for (Mob mob : new ArrayList<>(activeMobs)) {
@@ -422,6 +419,11 @@ public class WaveManager {
         // Les spawn points sont maintenant gérés par MapManager
     }
 
+    // Vérifie si un mob fait partie des mobs spawnés par les vagues
+    public static boolean isWaveMob(net.minecraft.world.entity.Entity entity) {
+        return activeMobs.contains(entity);
+    }
+
     // Méthode pour nettoyer tous les mobs actifs (appelée par zombiestop et game over)
     public static void killAllMobs() {
         for (Mob mob : new ArrayList<>(activeMobs)) {
@@ -453,7 +455,9 @@ public class WaveManager {
 
         // Countdown 10s
         waveCountdownTicks = 200;
-        GameManager.broadcastToAll(level, "§a§lVague " + currentWave + " terminée !");
-        GameManager.broadcastToAll(level, "§eProchaine vague dans §610 secondes§e...");
+        GameManager.broadcastToActivePlayers(level, "§a§lVague " + currentWave + " terminée !");
+
+        // Son de fin de round (uniquement pour les joueurs de la partie)
+        GameManager.playSoundToActivePlayers(level, ModSounds.ROUND_END.get(), 1.0f);
     }
 }

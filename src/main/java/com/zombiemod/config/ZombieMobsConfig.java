@@ -54,30 +54,11 @@ public class ZombieMobsConfig {
     private static File configFile;
 
     public ZombieMobsConfig() {
-        // Exemples de configuration avec zombies et husks
+        // Zombie normal (90% de spawn)
+        mobs.add(new MobEntry("minecraft:zombie", 0.9, 0.13, 0.007, 0.29, 1, 0.5, 1.5, 0.007, 10.0));
 
-        // Zombie normal (70% de spawn)
-        // baseSpeed: 0.23 (vitesse normale)
-        // speedPerWave: 0.01 (augmentation par vague)
-        // maxSpeed: 0.50 (plafond de vitesse, atteint à la vague 27)
-        // startingHearts: 1 (2 HP de départ)
-        // heartsPerWave: 0.5 (1 HP par vague)
-        // startingDamage: 1.5 (3 HP = 1.5 cœurs de dégâts)
-        // damagePerWave: 0.25 (0.5 HP par vague)
-        // maxDamage: 5.0 (10 HP maximum)
-        mobs.add(new MobEntry("minecraft:zombie", 0.7, 0.23, 0.01, 0.50, 1, 0.5, 1.5, 0.25, 5.0));
-
-        // Husk (zombie du désert) (30% de spawn)
-        // Plus résistant et plus lent que le zombie normal
-        // baseSpeed: 0.20 (plus lent)
-        // speedPerWave: 0.008 (augmentation plus lente)
-        // maxSpeed: 0.40 (plafond plus bas)
-        // startingHearts: 2 (4 HP de départ, plus résistant)
-        // heartsPerWave: 0.6 (1.2 HP par vague, scale mieux)
-        // startingDamage: 1.5 (mêmes dégâts de base)
-        // damagePerWave: 0.3 (augmente un peu plus vite)
-        // maxDamage: 6.0 (12 HP maximum)
-        mobs.add(new MobEntry("minecraft:husk", 0.3, 0.20, 0.008, 0.40, 2, 0.6, 1.5, 0.3, 6.0));
+        // Husk (zombie du désert) (10% de spawn)
+        mobs.add(new MobEntry("minecraft:husk", 0.1, 0.13, 0.005, 0.25, 3, 0.7, 2.5, 0.007, 15.0));
     }
 
     public static void init(File configDir) {
@@ -167,7 +148,7 @@ public class ZombieMobsConfig {
 
         // Fallback sur le premier mob si aucun n'a été sélectionné
         if (mobs.isEmpty()) {
-            return new MobEntry("minecraft:zombie", 1.0, 0.23, 0.01, 0.50, 1, 0.5, 1.5, 0.25, 5.0);
+            return new MobEntry("minecraft:zombie", 1.0, 0.13, 0.007, 0.29, 1, 0.5, 1.5, 0.007, 10.0);
         }
         return mobs.get(0);
     }

@@ -1,15 +1,19 @@
 package com.zombiemod.system;
 
 import com.zombiemod.ModSounds;
+import com.zombiemod.manager.GameManager;
 import com.zombiemod.manager.PointsManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.JukeboxBlockEntity;
+
+import java.util.UUID;
 
 public class JukeboxManager {
 
@@ -92,9 +96,17 @@ public class JukeboxManager {
 
         // Vérifier si le jukebox est déjà en train de jouer
         if (isPlaying(level, pos)) {
-            // Arrêter la musique pour tous les joueurs proches (dans un rayon de 64 blocs)
-            for (ServerPlayer p : level.getServer().getPlayerList().getPlayers()) {
-                if (p.level() == level && p.blockPosition().distSqr(pos) < 64 * 64) {
+            // Arrêter la musique uniquement pour les joueurs de la partie zombie
+            for (UUID uuid : GameManager.getActivePlayers()) {
+                ServerPlayer p = level.getServer().getPlayerList().getPlayer(uuid);
+                if (p != null) {
+                    p.connection.send(new net.minecraft.network.protocol.game.ClientboundStopSoundPacket(
+                        ModSounds.SONG_115.get().getLocation(), SoundSource.RECORDS));
+                }
+            }
+            for (UUID uuid : GameManager.getWaitingPlayers()) {
+                ServerPlayer p = level.getServer().getPlayerList().getPlayer(uuid);
+                if (p != null) {
                     p.connection.send(new net.minecraft.network.protocol.game.ClientboundStopSoundPacket(
                         ModSounds.SONG_115.get().getLocation(), SoundSource.RECORDS));
                 }
@@ -125,8 +137,21 @@ public class JukeboxManager {
         // Déduire les points
         PointsManager.removePoints(player.getUUID(), cost);
 
-        // Jouer le son 115
-        level.playSound(null, pos, ModSounds.SONG_115.get(), SoundSource.RECORDS, 1.0f, 1.0f);
+        // Jouer le son 115 uniquement pour les joueurs de la partie zombie
+        if (level instanceof ServerLevel serverLevel) {
+            for (UUID uuid : GameManager.getActivePlayers()) {
+                ServerPlayer p = serverLevel.getServer().getPlayerList().getPlayer(uuid);
+                if (p != null) {
+                    serverLevel.playSound(null, p.blockPosition(), ModSounds.SONG_115.get(), SoundSource.RECORDS, 1.0f, 1.0f);
+                }
+            }
+            for (UUID uuid : GameManager.getWaitingPlayers()) {
+                ServerPlayer p = serverLevel.getServer().getPlayerList().getPlayer(uuid);
+                if (p != null) {
+                    serverLevel.playSound(null, p.blockPosition(), ModSounds.SONG_115.get(), SoundSource.RECORDS, 1.0f, 1.0f);
+                }
+            }
+        }
 
         // Marquer comme en train de jouer
         setPlaying(level, pos, true);

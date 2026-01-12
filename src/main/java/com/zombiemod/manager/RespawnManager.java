@@ -31,10 +31,10 @@ public class RespawnManager {
 
         deadPlayers.add(uuid);
 
-        // Passer en spectateur
-        player.setGameMode(GameType.SPECTATOR);
+        // Message au joueur mort
         player.sendSystemMessage(Component.literal("§cVous êtes mort ! Vous respawnerez à la fin de la vague..."));
 
+        // Broadcast aux autres joueurs
         GameManager.broadcastToActivePlayers((ServerLevel) player.level(),
                 "§7" + player.getName().getString() + " §cest mort !");
     }

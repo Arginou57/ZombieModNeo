@@ -11,6 +11,11 @@ group = mod_group_id
 
 repositories {
     mavenLocal()
+    // Curios API (optionnel)
+    maven {
+        name = "Curios"
+        url = uri("https://maven.theillusivec4.top/")
+    }
 }
 
 base {
@@ -44,6 +49,8 @@ sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 dependencies {
     implementation "net.neoforged:neoforge:${neo_version}"
+    // Curios API - dépendance optionnelle (compileOnly = pas inclus dans le JAR)
+    compileOnly "top.theillusivec4.curios:curios-neoforge:9.2.2+1.21.1:api"
 }
 
 tasks.withType(ProcessResources).configureEach {

@@ -1,6 +1,7 @@
 package com.zombiemod.event;
 
 import com.zombiemod.manager.GameManager;
+import com.zombiemod.manager.InventoryManager;
 import com.zombiemod.manager.RespawnManager;
 import com.zombiemod.manager.WaveManager;
 import net.minecraft.network.chat.Component;
@@ -24,28 +25,54 @@ public class PlayerDeathHandler {
                 return; // Pas dans la partie
             }
 
+            // Annuler l'événement de mort pour éviter l'écran de mort
+            event.setCanceled(true);
+
+            // Respawn immédiat en spectateur
+            ServerLevel level = (ServerLevel) player.level();
+            net.minecraft.core.BlockPos respawnPoint = RespawnManager.getRespawnPoint();
+
+            // Restaurer la santé pour éviter que le joueur reste "mort"
+            player.setHealth(player.getMaxHealth());
+
+            // Passer en spectateur
+            player.setGameMode(GameType.SPECTATOR);
+
+            // Téléporter au point de respawn
+            if (respawnPoint != null) {
+                player.teleportTo(respawnPoint.getX() + 0.5, respawnPoint.getY(), respawnPoint.getZ() + 0.5);
+            }
+
+            // Enregistrer le joueur comme mort
             RespawnManager.onPlayerDeath(player);
 
             // Vérifier game over
-            if (GameManager.areAllActivePlayersDead((ServerLevel) player.level())) {
-                gameOver((ServerLevel) player.level());
+            if (GameManager.areAllActivePlayersDead(level)) {
+                gameOver(level);
             }
         }
     }
 
     private static void gameOver(ServerLevel level) {
-        GameManager.broadcastToAll(level, "");
-        GameManager.broadcastToAll(level, "§4§l=== GAME OVER ===");
-        GameManager.broadcastToAll(level, "§cVous avez survécu jusqu'à la vague §e" + WaveManager.getCurrentWave());
-        GameManager.broadcastToAll(level, "");
+        GameManager.broadcastToActivePlayers(level, "");
+        GameManager.broadcastToActivePlayers(level, "§4§l=== GAME OVER ===");
+        GameManager.broadcastToActivePlayers(level, "§cVous avez survécu jusqu'à la vague §e" + WaveManager.getCurrentWave());
+        GameManager.broadcastToActivePlayers(level, "");
+
+        // Son de game over (avant le reset pour avoir accès aux joueurs actifs)
+        GameManager.playSoundToActivePlayers(level, SoundEvents.WITHER_DEATH, 0.5f);
 
         // Nettoyer tous les mobs de la map
         WaveManager.killAllMobs();
 
-        // Téléporter les joueurs à leur respawn point vanilla
+        // Restaurer les inventaires et téléporter les joueurs à leur respawn point vanilla
         for (UUID uuid : GameManager.getActivePlayers()) {
             ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
             if (player != null) {
+                // Clear l'inventaire de la partie puis restaurer l'inventaire original
+                InventoryManager.clearInventory(player);
+                InventoryManager.restoreInventory(player);
+
                 // Mettre en survie
                 player.setGameMode(GameType.SURVIVAL);
 
@@ -67,6 +94,18 @@ public class PlayerDeathHandler {
                 }
 
                 player.sendSystemMessage(Component.literal("§7Vous avez été renvoyé à votre point de spawn."));
+                player.sendSystemMessage(Component.literal("§aVotre inventaire a été restauré."));
+            }
+        }
+
+        // Restaurer aussi les inventaires des joueurs en attente
+        for (UUID uuid : GameManager.getWaitingPlayers()) {
+            ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
+            if (player != null) {
+                InventoryManager.clearInventory(player);
+                InventoryManager.restoreInventory(player);
+                player.setGameMode(GameType.SURVIVAL);
+                player.sendSystemMessage(Component.literal("§aVotre inventaire a été restauré."));
             }
         }
 
@@ -77,7 +116,5 @@ public class PlayerDeathHandler {
 
         // Réinitialiser les portes (fermer physiquement et réinitialiser l'état)
         com.zombiemod.command.DoorCommand.resetAllDoors(level);
-
-        level.playSound(null, level.getSharedSpawnPos(), SoundEvents.WITHER_DEATH, SoundSource.MASTER, 1.0f, 0.5f);
     }
 }

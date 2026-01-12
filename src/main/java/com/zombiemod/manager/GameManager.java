@@ -195,6 +195,10 @@ public class GameManager {
                 break;
 
             case STARTING: // Countdown 60s
+                // Sauvegarder l'inventaire du joueur avant de le clear
+                InventoryManager.saveInventory(player);
+                InventoryManager.clearInventory(player);
+
                 waitingPlayers.add(uuid);
                 player.teleportTo(respawn.getX() + 0.5, respawn.getY(), respawn.getZ() + 0.5);
                 player.setGameMode(GameType.ADVENTURE); // Empêcher de casser des blocs
@@ -205,6 +209,10 @@ public class GameManager {
                 break;
 
             case WAVE_ACTIVE: // Vague en cours
+                // Sauvegarder l'inventaire du joueur avant de le clear
+                InventoryManager.saveInventory(player);
+                InventoryManager.clearInventory(player);
+
                 waitingPlayers.add(uuid);
                 player.setGameMode(GameType.SPECTATOR);
                 player.teleportTo(respawn.getX() + 0.5, respawn.getY(), respawn.getZ() + 0.5);
@@ -215,6 +223,10 @@ public class GameManager {
                 break;
 
             case WAVE_COOLDOWN: // Entre vagues (10s)
+                // Sauvegarder l'inventaire du joueur avant de le clear
+                InventoryManager.saveInventory(player);
+                InventoryManager.clearInventory(player);
+
                 activePlayers.add(uuid);
                 player.setGameMode(GameType.SURVIVAL);
                 player.teleportTo(respawn.getX() + 0.5, respawn.getY(), respawn.getZ() + 0.5);
@@ -244,8 +256,13 @@ public class GameManager {
         waitingPlayers.remove(uuid);
         RespawnManager.removeDeadPlayer(uuid);
 
-        player.setGameMode(GameType.SPECTATOR);
+        // Clear l'inventaire de la partie puis restaurer l'inventaire original
+        InventoryManager.clearInventory(player);
+        InventoryManager.restoreInventory(player);
+
+        player.setGameMode(GameType.SURVIVAL);
         player.sendSystemMessage(Component.literal("§7Vous avez quitté la partie."));
+        player.sendSystemMessage(Component.literal("§aVotre inventaire a été restauré."));
         broadcastToAll(level, "§7" + player.getName().getString() + " §ca quitté la partie.");
     }
 
@@ -370,6 +387,22 @@ public class GameManager {
     public static void playGlobalSound(ServerLevel level, net.minecraft.sounds.SoundEvent sound, float pitch) {
         for (ServerPlayer player : level.getServer().getPlayerList().getPlayers()) {
             level.playSound(null, player.blockPosition(), sound, SoundSource.MASTER, 1.0f, pitch);
+        }
+    }
+
+    public static void playSoundToActivePlayers(ServerLevel level, net.minecraft.sounds.SoundEvent sound, float pitch) {
+        for (UUID uuid : activePlayers) {
+            ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
+            if (player != null) {
+                level.playSound(null, player.blockPosition(), sound, SoundSource.MASTER, 1.0f, pitch);
+            }
+        }
+        // Aussi pour les joueurs en attente (spectateurs)
+        for (UUID uuid : waitingPlayers) {
+            ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
+            if (player != null) {
+                level.playSound(null, player.blockPosition(), sound, SoundSource.MASTER, 1.0f, pitch);
+            }
         }
     }
 

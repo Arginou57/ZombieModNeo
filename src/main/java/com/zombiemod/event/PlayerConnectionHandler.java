@@ -1,6 +1,7 @@
 package com.zombiemod.event;
 
 import com.zombiemod.manager.GameManager;
+import com.zombiemod.manager.InventoryManager;
 import com.zombiemod.system.ServerWeaponCrateTracker;
 import com.zombiemod.network.NetworkHandler;
 import com.zombiemod.network.packet.WeaponCrateSyncPacket;
@@ -14,6 +15,15 @@ public class PlayerConnectionHandler {
     @SubscribeEvent
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
+            // Si le joueur a un inventaire sauvegardé (déconnexion pendant une partie qui a été arrêtée)
+            // et qu'aucune partie n'est en cours, restaurer son inventaire
+            if (InventoryManager.hasSavedInventory(player.getUUID()) &&
+                    GameManager.getGameState() == GameManager.GameState.WAITING) {
+                InventoryManager.clearInventory(player);
+                InventoryManager.restoreInventory(player);
+                player.sendSystemMessage(net.minecraft.network.chat.Component.literal("§aVotre inventaire a été restauré (partie terminée pendant votre absence)."));
+            }
+
             // Envoyer la liste des weapon crates au joueur qui vient de se connecter
             ServerWeaponCrateTracker.syncToPlayer(player);
 

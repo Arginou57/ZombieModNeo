@@ -13,7 +13,7 @@ public class ZombieConfig {
     // Configuration par défaut
     private int maxZombiesOnMap = 32;
     private double spawnDelaySeconds = 2.0;
-    private double zombieFollowRange = 32.0; // Portée de détection des joueurs en blocs
+    private double mobFollowRange = 32.0; // Portée de détection des joueurs en blocs (tous les mobs)
     private double armoredZombieChance = 0.15; // 15% de chance de spawner avec armure
     private int waveTimeoutSeconds = 50; // Temps max pour finir une vague (0 = désactivé)
     private int glowingZombiesCount = 5; // Nombre de derniers zombies avec effet glowing
@@ -79,8 +79,8 @@ public class ZombieConfig {
         return (int) (spawnDelaySeconds * 20);
     }
 
-    public double getZombieFollowRange() {
-        return zombieFollowRange;
+    public double getMobFollowRange() {
+        return mobFollowRange;
     }
 
     public double getArmoredZombieChance() {
